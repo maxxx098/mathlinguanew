@@ -12,7 +12,7 @@ const slides = [
   {
     icon: BookOpen,
     iconBg: "bg-primary/10 text-primary",
-    title: "Welcome to Algebra Bridge! 🎓",
+    title: "Welcome to Math lingua! 🎓",
     description: "Master algebraic translations step by step through fun, gamified lessons designed to make math enjoyable.",
   },
   {
@@ -117,7 +117,7 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
               <div className="rounded-xl border bg-card p-4 space-y-3 max-h-48 overflow-y-auto text-left">
                 <h3 className="font-semibold text-sm">Terms of Use</h3>
                 <ul className="text-xs text-muted-foreground space-y-2 list-disc pl-4">
-                  <li>Algebra Bridge is an educational platform for learning algebraic concepts.</li>
+                  <li>Mathhlingua is an educational platform for learning algebraic concepts.</li>
                   <li>You agree to use the app responsibly and respect other users in the community.</li>
                   <li>Your progress and data are stored securely to provide a personalized learning experience.</li>
                   <li>Do not share your account credentials with others.</li>

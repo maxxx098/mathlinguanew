@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { LivesProvider } from "@/contexts/LivesContext";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import AppLayout from "@/layouts/AppLayout";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -23,12 +24,13 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <LivesProvider>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <LivesProvider>
             <Routes>
               <Route path="/auth" element={<Auth />} />
               <Route path="/activity/:levelId" element={<Activity />} />
@@ -45,10 +47,11 @@ const App = () => (
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </LivesProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
+            </LivesProvider>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 

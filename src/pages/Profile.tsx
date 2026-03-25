@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import WeeklyProgressChart from "@/components/WeeklyProgressChart";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -97,6 +98,7 @@ const Profile = () => {
           <Button variant="outline" className="w-full justify-start gap-2" onClick={() => navigate("/settings")}>
             <Settings className="h-4 w-4" /> Settings & Privacy
           </Button>
+          <ThemeToggle />
           <Button variant="ghost" className="w-full justify-start gap-2 text-destructive" onClick={handleLogout}>
             <LogOut className="h-4 w-4" /> {isGuest ? "Exit Guest Mode" : "Log Out"}
           </Button>
