@@ -90,26 +90,15 @@ const TeacherDashboard = () => {
       {/* Header */}
       <div className="border-b bg-card">
         <div className="container max-w-2xl px-4 py-4">
-          <motion.div 
-            initial={{ opacity: 0, y: -8 }} 
-            animate={{ opacity: 1, y: 0 }} 
-            className="flex items-center justify-between"
-          >
-            <div>
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Welcome back</p>
-              <h1 className="font-display text-xl font-bold mt-0.5">{displayName}</h1>
-            </div>
-            <div className="flex items-center gap-2">
-              <HeartsDisplay />
-              <Badge variant="secondary" className="gap-1">
-                <Flame className="h-3.5 w-3.5 text-warning" />
-                <span className="font-display text-xs font-bold">{stats.studentCount}</span>
-              </Badge>
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate("/guide")}>
-                <HelpCircle className="h-4 w-4" />
-              </Button>
-            </div>
-          </motion.div>
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
+        <div>
+          <h1 className="font-display text-2xl font-bold">Hi, {displayName}!</h1>
+          <p className="text-sm text-muted-foreground">Here's your teaching overview</p>
+        </div>
+        <Button variant="ghost" size="icon" onClick={() => navigate("/guide")}>
+          <HelpCircle className="h-5 w-5" />
+        </Button>
+      </motion.div>
         </div>
       </div>
 
