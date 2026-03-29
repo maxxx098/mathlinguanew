@@ -5,13 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, GraduationCap, Users, ArrowRight, ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { BookOpen, GraduationCap, Users, ArrowRight, ArrowLeft, Eye, EyeOff, MailCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import Onboarding from "@/components/Onboarding";
 
-type AuthView = "welcome" | "login" | "register" | "role-select" | "onboarding";
+type AuthView = "welcome" | "login" | "register" | "role-select" | "onboarding" | "verify-email";
 type UserRole = "teacher" | "learner";
 
 const Auth = () => {
@@ -22,6 +22,7 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [classCode, setClassCode] = useState("");
   const [loading, setLoading] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState("");
 
   const handleGuestMode = () => {
     localStorage.setItem("algebra-bridge-guest", "true");
@@ -54,6 +55,9 @@ const Auth = () => {
     }
 
     if (data.user) {
+      // Check if email confirmation is required (user exists but not confirmed)
+      const needsVerification = !data.session;
+
       await supabase.from("user_roles").insert({ user_id: data.user.id, role: (role || "learner") as any });
 
       await supabase.from("profiles").update({
@@ -74,8 +78,13 @@ const Auth = () => {
         }
       }
 
-      toast.success("Account created! Check your email to verify.");
-      setView("onboarding");
+      if (needsVerification) {
+        setRegisteredEmail(email);
+        setView("verify-email");
+        toast.success("Check your email to verify your account!");
+      } else {
+        setView("onboarding");
+      }
     }
     setLoading(false);
   };
@@ -115,6 +124,42 @@ const Auth = () => {
 
   if (view === "onboarding") {
     return <Onboarding onComplete={handleOnboardingComplete} />;
+  }
+
+  if (view === "verify-email") {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md text-center space-y-6">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-success/10">
+            <MailCheck className="h-10 w-10 text-success" />
+          </div>
+          <div className="space-y-2">
+            <h1 className="font-display text-2xl font-bold">Check your email</h1>
+            <p className="text-muted-foreground">
+              We sent a verification link to<br />
+              <span className="font-semibold text-foreground">{registeredEmail}</span>
+            </p>
+          </div>
+          <Card>
+            <CardContent className="pt-6 space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Click the link in your email to verify your account, then come back here to log in.
+              </p>
+              <Button size="lg" className="w-full font-semibold" onClick={() => setView("login")}>
+                Go to Login
+              </Button>
+              <Button size="lg" variant="ghost" className="w-full text-muted-foreground" onClick={async () => {
+                const { error } = await supabase.auth.resend({ type: 'signup', email: registeredEmail });
+                if (error) toast.error(error.message);
+                else toast.success("Verification email resent!");
+              }}>
+                Resend verification email
+              </Button>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+    );
   }
 
   return (
