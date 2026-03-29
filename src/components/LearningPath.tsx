@@ -206,7 +206,6 @@ const LearningPath = () => {
         <DialogContent className="max-w-sm rounded-2xl">
           <DialogHeader>
             <div className="flex items-center gap-3 mb-1">
-              <span className="text-3xl">{selectedStage?.emoji}</span>
               <div>
                 <Badge variant="secondary" className="text-[10px] mb-1">
                   Stage {selectedStage?.order_index}

@@ -251,7 +251,7 @@ const LearnerHome = () => {
           <h1 className="font-display text-xl font-bold mt-0.5">{displayName}</h1>
         </div>
         <div className="flex items-center gap-2">
-          <HeartsDisplay />
+          <HeartsDisplay showTimer/>
           <Badge variant="secondary" className="gap-1">
             <Flame className="h-3.5 w-3.5 text-warning" />
             <span className="font-display text-xs font-bold">{stats.completed}</span>
