@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
+import GuestGate from "@/components/GuestGate";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -324,7 +325,7 @@ const CreateAssignmentDialog = ({
 
 // ─── Main Class Component ───
 const Class = () => {
-  const { user, userRole } = useAuth();
+  const { user, userRole, isGuest } = useAuth();
   const isTeacher = userRole === "teacher";
 
   const [myClass, setMyClass] = useState<ClassData | null>(null);
@@ -723,6 +724,27 @@ const Class = () => {
     return `${Math.floor(hrs / 24)}d ago`;
   };
 
+  // Guest gate — show login prompt for guests
+  if (isGuest && !user) {
+    return (
+      <div className="pb-24 pt-4 px-4">
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
+          <h1 className="font-display text-2xl font-bold mb-1">My Class</h1>
+          <p className="text-sm text-muted-foreground mb-8">
+            Join or create a class to collaborate with your teacher and classmates.
+          </p>
+        </motion.div>
+        <GuestGate>
+          {(gate) => (
+            <Button size="lg" className="w-full gap-2 font-semibold" onClick={() => gate()}>
+              <LogIn className="h-4 w-4" /> Sign In to Access Classes
+            </Button>
+          )}
+        </GuestGate>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center pb-24 pt-20">
@@ -734,7 +756,7 @@ const Class = () => {
   // No class yet — show create/join
   if (!myClass) {
     return (
-      <div className="pb-24 pt-4 px-4 overflow-y-scroll">
+      <div className="pb-24 pt-4 px-4">
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
           <h1 className="font-display text-2xl font-bold mb-1">My Class</h1>
           <p className="text-sm text-muted-foreground mb-8">

@@ -192,7 +192,7 @@ const Auth = () => {
                   </Button>
                 </CardContent>
               </Card>
-              <p className="text-xs text-muted-foreground">Guest mode lets you try a few levels. Create an account to save progress.</p>
+              <p className="text-xs text-muted-foreground">Guest mode can see a limited preview. Create an account to see the full website.</p>
             </motion.div>
           )}
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Lock, Check, Star, X, BookOpen } from "lucide-react";
+import { Lock, Check, Star, BookOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -13,6 +13,7 @@ import {
   DialogTitle,
   DialogClose,
 } from "@/components/ui/dialog";
+import { useGuestGate, GuestGateDialog } from "@/components/GuestGate";
 
 interface Level {
   id: string;
@@ -37,6 +38,9 @@ const LearningPath = () => {
   const [stages, setStages] = useState<Stage[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedStage, setSelectedStage] = useState<Stage | null>(null);
+
+  // Guest gate hook
+  const { checkAuth, gateOpen, setGateOpen } = useGuestGate();
 
   useEffect(() => {
     const fetchPath = async () => {
@@ -110,6 +114,8 @@ const LearningPath = () => {
 
   const handleLevelClick = (level: Level) => {
     if (level.status === "locked") return;
+    // Guest gate check — shows "Oops, you need to log in" dialog if guest
+    if (!checkAuth()) return;
     navigate(`/activity/${level.id}`);
   };
 
@@ -293,6 +299,9 @@ const LearningPath = () => {
           </DialogClose>
         </DialogContent>
       </Dialog>
+
+      {/* Guest gate dialog — "Oops, you need to log in!" */}
+      <GuestGateDialog open={gateOpen} onOpenChange={setGateOpen} />
     </>
   );
 };

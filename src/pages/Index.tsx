@@ -294,28 +294,29 @@ const LearnerHome = () => {
           open={showDailyChallenge} 
           onOpenChange={setShowDailyChallenge}
         />
-{/* Today's Challenge */}
-<motion.div
-  initial={{ opacity: 0, y: 20 }}
-  animate={{ opacity: 1, y: 0 }}
-  transition={{ delay: 0.2 }}
->
-  <h3 className="font-semibold mb-4">Today's Challenge</h3>
-  <Card 
-    className="cursor-pointer hover:bg-accent transition-colors"
-    onClick={() => setShowDailyChallenge(true)}
-  >
-    <CardContent className="pt-6 flex items-center gap-4">
-      <div className="bg-primary/10 rounded-lg p-3">
-        <Target className="h-8 w-8 text-primary" />
-      </div>
-      <div className="flex-1">
-        <h4 className="font-semibold mb-1">Daily Quiz</h4>
-        <p className="text-xs text-muted-foreground">1 question · Tap to start</p>
-      </div>
-    </CardContent>
-  </Card>
-</motion.div>
+        
+        {/* Today's Challenge */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <h3 className="font-semibold mb-4">Today's Challenge</h3>
+          <Card 
+            className="cursor-pointer hover:bg-accent transition-colors"
+            onClick={() => setShowDailyChallenge(true)}
+          >
+            <CardContent className="pt-6 flex items-center gap-4">
+              <div className="bg-primary/10 rounded-lg p-3">
+                <Target className="h-8 w-8 text-primary" />
+              </div>
+              <div className="flex-1">
+                <h4 className="font-semibold mb-1">Daily Quiz</h4>
+                <p className="text-xs text-muted-foreground">1 question · Tap to start</p>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
 
         {/* Learning Path */}
         <motion.div

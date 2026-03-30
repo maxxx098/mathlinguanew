@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import GuestGate from "@/components/GuestGate";
 
 interface Post {
   id: string; user_id: string; title: string; content: string; created_at: string;
@@ -144,10 +145,14 @@ const Community = () => {
             </div>
             <p className="text-sm leading-relaxed">{selectedPost.content}</p>
             <div className="flex items-center gap-4 pt-1">
-              <button onClick={() => handleHeart(selectedPost)}
-                className={`flex items-center gap-1 text-xs transition-colors ${selectedPost.user_hearted ? "text-destructive" : "text-muted-foreground hover:text-destructive"}`}>
-                <Heart className={`h-3.5 w-3.5 ${selectedPost.user_hearted ? "fill-current" : ""}`} /> {selectedPost.heart_count}
-              </button>
+              <GuestGate>
+                {(gate) => (
+                  <button onClick={() => { if (gate()) handleHeart(selectedPost); }}
+                    className={`flex items-center gap-1 text-xs transition-colors ${selectedPost.user_hearted ? "text-destructive" : "text-muted-foreground hover:text-destructive"}`}>
+                    <Heart className={`h-3.5 w-3.5 ${selectedPost.user_hearted ? "fill-current" : ""}`} /> {selectedPost.heart_count}
+                  </button>
+                )}
+              </GuestGate>
               {selectedPost.user_id === user?.id && (
                 <button onClick={() => handleDeletePost(selectedPost.id)} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive">
                   <Trash2 className="h-3.5 w-3.5" /> Delete
@@ -173,10 +178,16 @@ const Community = () => {
           ))}
         </div>
 
-        <div className="flex gap-2">
-          <Input value={replyText} onChange={(e) => setReplyText(e.target.value)} placeholder="Write a reply..." onKeyDown={(e) => e.key === "Enter" && handleReply()} />
-          <Button size="icon" onClick={handleReply} disabled={!replyText.trim()}><Send className="h-4 w-4" /></Button>
-        </div>
+        <GuestGate>
+          {(gate) => (
+            <div className="flex gap-2">
+              <Input value={replyText} onChange={(e) => setReplyText(e.target.value)} placeholder="Write a reply..."
+                onFocus={() => gate()}
+                onKeyDown={(e) => { if (e.key === "Enter" && gate()) handleReply(); }} />
+              <Button size="icon" onClick={() => { if (gate()) handleReply(); }} disabled={!replyText.trim()}><Send className="h-4 w-4" /></Button>
+            </div>
+          )}
+        </GuestGate>
       </div>
     );
   }
@@ -213,9 +224,13 @@ const Community = () => {
             <h1 className="font-display text-2xl font-bold">Community</h1>
             <p className="text-sm text-muted-foreground">Learn together, grow together</p>
           </div>
-          <Button size="sm" className="gap-1" onClick={() => setShowCreate(true)}>
-            <Plus className="h-4 w-4" /> Post
-          </Button>
+          <GuestGate>
+            {(gate) => (
+              <Button size="sm" className="gap-1" onClick={() => { if (gate()) setShowCreate(true); }}>
+                <Plus className="h-4 w-4" /> Post
+              </Button>
+            )}
+          </GuestGate>
         </div>
 
         <div className="relative">
@@ -259,10 +274,14 @@ const Community = () => {
                   <p className="font-display text-sm font-bold">{post.title}</p>
                   <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{post.content}</p>
                   <div className="flex items-center gap-4 pt-1">
-                    <button onClick={(e) => { e.stopPropagation(); handleHeart(post); }}
-                      className={`flex items-center gap-1 text-xs transition-colors ${post.user_hearted ? "text-destructive" : "text-muted-foreground hover:text-destructive"}`}>
-                      <Heart className={`h-3.5 w-3.5 ${post.user_hearted ? "fill-current" : ""}`} /> {post.heart_count}
-                    </button>
+                    <GuestGate>
+                      {(gate) => (
+                        <button onClick={(e) => { e.stopPropagation(); if (gate()) handleHeart(post); }}
+                          className={`flex items-center gap-1 text-xs transition-colors ${post.user_hearted ? "text-destructive" : "text-muted-foreground hover:text-destructive"}`}>
+                          <Heart className={`h-3.5 w-3.5 ${post.user_hearted ? "fill-current" : ""}`} /> {post.heart_count}
+                        </button>
+                      )}
+                    </GuestGate>
                     <span className="flex items-center gap-1 text-xs text-muted-foreground">
                       <MessageCircle className="h-3.5 w-3.5" /> {post.reply_count}
                     </span>
