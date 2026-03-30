@@ -44,7 +44,7 @@ const Auth = () => {
       password,
       options: {
         data: { display_name: `${firstName} ${lastName}` },
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: `https://mathlingua.vercel.app/`, // for production, or `http://localhost:3000/` for local development
       },
     });
 

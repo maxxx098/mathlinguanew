@@ -294,46 +294,28 @@ const LearnerHome = () => {
           open={showDailyChallenge} 
           onOpenChange={setShowDailyChallenge}
         />
-
-        {/* Today's Challenge */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold">Today's Challenge</h3>
-            <Button variant="ghost" size="sm" className="gap-1">
-              <Plus className="h-4 w-4" />
-              Add
-            </Button>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-3">
-            <Card className="cursor-pointer hover:bg-accent transition-colors">
-              <CardContent className="pt-6">
-                <div className="aspect-square bg-primary/10 rounded-lg flex items-center justify-center mb-3">
-                  <Award className="h-10 w-10 text-primary" />
-                </div>
-                <h4 className="font-semibold mb-1">Practice</h4>
-                <p className="text-xs text-muted-foreground">{stats.currentLevel} problems</p>
-              </CardContent>
-            </Card>
-
-            <Card 
-              className="cursor-pointer hover:bg-accent transition-colors"
-              onClick={() => setShowDailyChallenge(true)}
-            >
-              <CardContent className="pt-6">
-                <div className="aspect-square bg-primary/10 rounded-lg flex items-center justify-center mb-3">
-                  <Target className="h-10 w-10 text-primary" />
-                </div>
-                <h4 className="font-semibold mb-1">Quiz</h4>
-                <p className="text-xs text-muted-foreground">1 question</p>
-              </CardContent>
-            </Card>
-          </div>
-        </motion.div>
+{/* Today's Challenge */}
+<motion.div
+  initial={{ opacity: 0, y: 20 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ delay: 0.2 }}
+>
+  <h3 className="font-semibold mb-4">Today's Challenge</h3>
+  <Card 
+    className="cursor-pointer hover:bg-accent transition-colors"
+    onClick={() => setShowDailyChallenge(true)}
+  >
+    <CardContent className="pt-6 flex items-center gap-4">
+      <div className="bg-primary/10 rounded-lg p-3">
+        <Target className="h-8 w-8 text-primary" />
+      </div>
+      <div className="flex-1">
+        <h4 className="font-semibold mb-1">Daily Quiz</h4>
+        <p className="text-xs text-muted-foreground">1 question · Tap to start</p>
+      </div>
+    </CardContent>
+  </Card>
+</motion.div>
 
         {/* Learning Path */}
         <motion.div
@@ -350,7 +332,9 @@ const LearnerHome = () => {
 };
 
 const Index = () => {
-  const { userRole } = useAuth();
+  const { userRole, loading } = useAuth(); // loading state
+
+  if (loading) return null;
 
   if (userRole === "teacher") {
     return <TeacherDashboard />;
