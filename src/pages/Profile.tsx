@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { GraduationCap, Flame, Trophy, Star, Settings, LogOut, Award } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { motion, cubicBezier } from "framer-motion";
+import { Flame, CheckSquare, Zap, Award, Settings, LogOut, ChevronRight } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -37,73 +35,139 @@ const Profile = () => {
   };
 
   const displayName = profile?.display_name || (isGuest ? "Guest Learner" : "Learner");
-  const roleLabel = userRole ? userRole.charAt(0).toUpperCase() + userRole.slice(1) : (isGuest ? "Guest" : "Learner");
+  const roleLabel = userRole
+    ? userRole.charAt(0).toUpperCase() + userRole.slice(1)
+    : isGuest ? "Guest" : "Learner";
   const progressPercent = Math.round((stats.completed / 20) * 100);
 
+  const stagger = (i: number) => ({
+    initial: { opacity: 0, y: 8 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.35, delay: i * 0.06, ease: cubicBezier(0.42, 0, 0.58, 1) },
+  });
+
+  const initials = displayName
+    .split(" ")
+    .map((w: string) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
   return (
-    <div className="pb-24 pt-4 px-4 space-y-4">
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-        {/* Avatar & Name */}
-        <Card>
-          <CardContent className="pt-6 flex flex-col items-center text-center space-y-3">
-            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <GraduationCap className="h-10 w-10" />
-            </div>
-            <div>
-              <h1 className="font-display text-xl font-bold">{displayName}</h1>
-              <p className="text-sm text-muted-foreground">{roleLabel}</p>
-            </div>
-          </CardContent>
-        </Card>
+    <div className="min-h-screen pb-28">
+
+      {/* Hero strip */}
+      <motion.div
+        {...stagger(0)}
+        className="px-5 pt-8 pb-6 border-b border-border/50"
+      >
+        <div className="flex items-center gap-4">
+          <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+            <span className="text-lg font-semibold text-primary tracking-tight">
+              {initials}
+            </span>
+          </div>
+          <div>
+            <h1 className="text-[22px] font-semibold tracking-tight leading-tight">
+              {displayName}
+            </h1>
+            <p className="text-sm text-muted-foreground mt-0.5">{roleLabel}</p>
+          </div>
+        </div>
       </motion.div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-3">
-        {[
-          { icon: Flame, label: "Streak", value: stats.streak, color: "text-warning" },
-          { icon: Trophy, label: "Levels Done", value: stats.completed, color: "text-success" },
-          { icon: Star, label: "Challenges", value: stats.challenges, color: "text-primary" },
-        ].map((stat) => (
-          <Card key={stat.label}>
-            <CardContent className="pt-3 pb-3 flex flex-col items-center">
-              <stat.icon className={`h-5 w-5 mb-1 ${stat.color}`} />
-              <p className="font-display text-lg font-bold">{stat.value}</p>
-              <p className="text-[10px] text-muted-foreground">{stat.label}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      <div className="px-5 space-y-7 pt-6">
 
-      {/* Progress */}
-      <Card>
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-sm">Learning Progress</CardTitle>
-            <span className="text-xs font-bold text-success">{stats.completed}/20</span>
+        {/* Stats */}
+        <motion.div {...stagger(1)}>
+          <p className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground mb-3">
+            Stats
+          </p>
+          <div className="grid grid-cols-3 divide-x divide-border rounded-xl border border-border overflow-hidden">
+            {[
+              { label: "Day streak",  value: stats.streak, },
+              { label: "Levels done",  value: stats.completed,},
+              { label: "Challenges",  value: stats.challenges, },
+            ].map(({ label: label, value}) => (
+              <div key={label} className="flex flex-col items-center gap-1.5 py-4 px-2 bg-card">       
+                <span className="text-[26px] font-semibold leading-none tabular-nums">
+                  {value}
+                </span>
+                <span className="text-[10px] text-muted-foreground text-center leading-tight">
+                  {label}
+                </span>
+              </div>
+            ))}
           </div>
-        </CardHeader>
-        <CardContent>
-          <Progress value={progressPercent} className="h-2" />
-        </CardContent>
-      </Card>
+        </motion.div>
 
-      <WeeklyProgressChart />
+        {/* Progress */}
+        <motion.div {...stagger(2)}>
+          <div className="flex items-baseline justify-between mb-3">
+            <p className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
+              Course progress
+            </p>
+            <span className="text-xs text-muted-foreground">
+              {stats.completed}
+              <span className="text-muted-foreground/40 mx-0.5">/</span>
+              20
+            </span>
+          </div>
+          <Progress value={progressPercent} className="h-1" />
+          <div className="flex justify-between mt-1.5">
+            <span className="text-[10px] text-muted-foreground">Beginner</span>
+            <span className="text-[10px] text-muted-foreground">Advanced</span>
+          </div>
+        </motion.div>
 
-      {/* Actions */}
-      <Card>
-        <CardContent className="pt-4 space-y-2">
-          <Button variant="outline" className="w-full justify-start gap-2" onClick={() => navigate("/badges")}>
-            <Award className="h-4 w-4" /> My Badges
-          </Button>
-          <Button variant="outline" className="w-full justify-start gap-2" onClick={() => navigate("/settings")}>
-            <Settings className="h-4 w-4" /> Settings & Privacy
-          </Button>
-          <ThemeToggle />
-          <Button variant="ghost" className="w-full justify-start gap-2 text-destructive" onClick={handleLogout}>
-            <LogOut className="h-4 w-4" /> {isGuest ? "Exit Guest Mode" : "Log Out"}
-          </Button>
-        </CardContent>
-      </Card>
+        {/* Weekly chart */}
+        <motion.div {...stagger(3)}>
+          <p className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground mb-3">
+            This week
+          </p>
+          <div className="rounded-xl border border-border bg-card overflow-hidden">
+            <WeeklyProgressChart />
+          </div>
+        </motion.div>
+
+        {/* Menu */}
+        <motion.div {...stagger(4)}>
+          <p className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground mb-2">
+            Account
+          </p>
+          <div className="rounded-xl border border-border bg-card divide-y divide-border overflow-hidden">
+            {[
+              { label: "My Badges",          icon: Award,    action: () => navigate("/badges")   },
+              { label: "Settings & Privacy", icon: Settings, action: () => navigate("/settings") },
+            ].map(({ label, icon: Icon, action }) => (
+              <button
+                key={label}
+                onClick={action}
+                className="w-full flex items-center justify-between px-4 py-3.5 text-sm hover:bg-muted/50 active:bg-muted transition-colors text-left group"
+              >
+                <div className="flex items-center gap-3 text-foreground">
+                  <Icon className="h-4 w-4 text-muted-foreground" strokeWidth={1.75} />
+                  {label}
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors" />
+              </button>
+            ))}
+
+            <div className="px-4 py-3">
+              <ThemeToggle />
+            </div>
+
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center gap-3 px-4 py-3.5 text-sm text-destructive/80 hover:text-destructive hover:bg-destructive/5 active:bg-destructive/10 transition-colors text-left"
+            >
+              <LogOut className="h-4 w-4" strokeWidth={1.75} />
+              {isGuest ? "Exit Guest Mode" : "Log Out"}
+            </button>
+          </div>
+        </motion.div>
+
+      </div>
     </div>
   );
 };
