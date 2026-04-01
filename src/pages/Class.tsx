@@ -17,7 +17,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import GuestGate from "@/components/GuestGate";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-
+ 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface ClassData {
