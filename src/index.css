@@ -6,87 +6,111 @@
 
 @layer base {
   :root {
-    --background: 210 20% 98%;
-    --foreground: 220 26% 8%;
+    /* Linen White base */
+    --background: 64 20% 93%;
+    --foreground: 174 40% 10%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 26% 8%;
+    --card-foreground: 174 40% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 26% 8%;
+    --popover-foreground: 174 40% 10%;
 
-    --primary: 239 84% 67%;
+    /* Cool Jade as primary — rich, high-contrast green */
+    --primary: 174 57% 32%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 20% 95%;
-    --secondary-foreground: 220 26% 8%;
+    /* Slightly jade-tinted surfaces */
+    --secondary: 168 20% 88%;
+    --secondary-foreground: 174 40% 10%;
 
-    --muted: 210 20% 95%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 168 15% 86%;
+    --muted-foreground: 174 18% 38%;
 
-    --accent: 210 20% 95%;
-    --accent-foreground: 220 26% 8%;
+    --accent: 168 22% 83%;
+    --accent-foreground: 174 40% 10%;
 
-    --success: 160 84% 39%;
+    /* Spring Herb for success/completed states */
+    --success: 101 33% 45%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 92% 50%;
+    /* Sky Aqua for info */
+    --warning: 199 68% 47%;
     --warning-foreground: 0 0% 100%;
 
     --destructive: 15 80% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 239 84% 67%;
+    --border: 168 18% 80%;
+    --input: 168 18% 80%;
+
+    /* Cool Jade ring */
+    --ring: 174 57% 32%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 239 84% 67%;
+    /* Sidebar */
+    --sidebar-background: 64 20% 95%;
+    --sidebar-foreground: 174 40% 10%;
+    --sidebar-primary: 174 57% 32%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 168 20% 88%;
+    --sidebar-accent-foreground: 174 40% 10%;
+    --sidebar-border: 168 18% 80%;
+    --sidebar-ring: 174 57% 32%;
 
     --font-display: 'Montserrat', sans-serif;
     --font-body: 'Inter', sans-serif;
   }
 
   .dark {
-    --background: 220 26% 8%;
-    --foreground: 210 20% 98%;
-    --card: 220 20% 12%;
-    --card-foreground: 210 20% 98%;
-    --popover: 220 20% 12%;
-    --popover-foreground: 210 20% 98%;
-    --primary: 239 84% 67%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 20% 98%;
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 217 33% 17%;
-    --accent-foreground: 210 20% 98%;
-    --success: 160 84% 39%;
+    /* Deep jade-tinted dark background */
+    --background: 174 30% 8%;
+    --foreground: 64 18% 90%;
+
+    --card: 174 25% 12%;
+    --card-foreground: 64 18% 90%;
+
+    --popover: 174 25% 12%;
+    --popover-foreground: 64 18% 90%;
+
+    /* Spring Herb pops on dark — slightly brighter */
+    --primary: 101 40% 60%;
+    --primary-foreground: 168 38% 8%;
+
+    --secondary: 174 22% 18%;
+    --secondary-foreground: 64 18% 90%;
+
+    --muted: 174 22% 18%;
+    --muted-foreground: 168 15% 58%;
+
+    --accent: 174 22% 22%;
+    --accent-foreground: 64 18% 90%;
+
+    /* Cool Jade — slightly lighter to pop on dark */
+    --success: 174 55% 42%;
     --success-foreground: 0 0% 100%;
-    --warning: 38 92% 50%;
+
+    /* Sky Aqua */
+    --warning: 199 68% 52%;
     --warning-foreground: 0 0% 100%;
+
     --destructive: 15 80% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 239 84% 67%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 239 84% 67%;
+
+    --border: 174 20% 22%;
+    --input: 174 20% 22%;
+
+    --ring: 101 40% 60%;
+
+    --sidebar-background: 174 30% 10%;
+    --sidebar-foreground: 64 18% 88%;
+    --sidebar-primary: 101 40% 60%;
+    --sidebar-primary-foreground: 168 38% 8%;
+    --sidebar-accent: 174 22% 18%;
+    --sidebar-accent-foreground: 64 18% 88%;
+    --sidebar-border: 174 20% 22%;
+    --sidebar-ring: 101 40% 60%;
   }
 }
 
@@ -133,7 +157,7 @@
   .font-body {
     font-family: var(--font-body);
   }
-    .scrollbar-hide {
+  .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }

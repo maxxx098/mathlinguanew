@@ -19,6 +19,7 @@ import Settings from "./pages/Settings";
 import StudentProfile from "./pages/StudentProfile";
 import Guide from "./pages/Guide";
 import NotFound from "./pages/NotFound";
+import ResetPassword from "./pages/ResetPassword";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +34,7 @@ const App = () => (
             <LivesProvider>
             <Routes>
               <Route path="/auth" element={<Auth />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/activity/:levelId" element={<Activity />} />
               <Route element={<AppLayout />}>
                 <Route path="/" element={<Index />} />
