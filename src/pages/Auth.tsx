@@ -127,7 +127,7 @@ export default function Auth() {
   const RightPanel = () => (
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8 }}
-      className="hidden lg:flex flex-col w-1/2 p-10 bg-[#f8f8f8]"
+      className="hidden lg:flex flex-col w-1/2 p-10 bg-background"
     >
       <div className="relative h-full w-full bg-primary rounded-[48px] overflow-hidden p-16 flex flex-col justify-between shadow-2xl">
         <LargeWatermark />
@@ -243,12 +243,12 @@ export default function Auth() {
 
   /* ── Main layout ── */
   return (
-    <div className="flex min-h-screen bg-[#f8f8f8] font-sans selection:bg-primary selection:text-primary-foreground">
+    <div className="flex min-h-screen bg-[#f8f8f8] font-sans selection:bg-primary selection:text-primary-foreground ">
 
       {/* Left white form */}
       <motion.div
         initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, ease: "easeOut" }}
-        className="flex flex-col justify-center w-full px-8 py-12 lg:w-1/2 xl:px-32 bg-white"
+        className="flex flex-col justify-center w-full px-8 py-12 lg:w-1/2 xl:px-32 bg-background"
       >
         <div className="max-w-sm mx-auto w-full space-y-10">
 
