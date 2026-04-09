@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect} from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import Onboarding from "@/components/Onboarding";
+import { userInfo } from "os";
 
 type AuthView = "welcome" | "login" | "register" | "role-select" | "onboarding" | "verify-email";
 type UserRole = "teacher" | "learner";
@@ -55,6 +56,7 @@ export default function Auth() {
   const [classCode, setClassCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState("");
+  const [stats, setStats] = useState({ users: 0, lessons: 0 });
 
   const handleGuestMode = () => {
     localStorage.setItem("algebra-bridge-guest", "true");
@@ -118,11 +120,34 @@ export default function Auth() {
     if (user) await supabase.from("profiles").update({ onboarding_completed: true }).eq("user_id", user.id);
     navigate("/");
   };
+const formatNumber = (num: number) => {
+  if (num >= 1000) return `${Math.floor(num / 1000)}k+`;
+  return num;
+};
 
   const slide = { enter: { x: 30, opacity: 0 }, center: { x: 0, opacity: 1 }, exit: { x: -30, opacity: 0 } };
 
   if (view === "onboarding") return <Onboarding onComplete={handleOnboardingComplete} />;
+useEffect(() => {
+  const fetchStats = async () => {
+    // count users
+    const { count: userCount } = await supabase
+      .from("profiles")
+      .select("*", { count: "exact", head: true });
 
+    // count completed assignments
+    const { count: lessonCount } = await supabase
+      .from("assignment_submissions")
+      .select("*", { count: "exact", head: true });
+
+    setStats({
+      users: userCount || 0,
+      lessons: lessonCount || 0,
+    });
+  };
+
+  fetchStats();
+}, []);
   /* ── Shared right panel ── */
   const RightPanel = () => (
     <motion.div
@@ -153,7 +178,12 @@ export default function Auth() {
             </p>
           </div>
           <p className="text-primary-foreground/40 text-sm font-bold">
-            More than 5k students already learning
+           {view === "welcome" && `Join ${formatNumber(stats.users)} users mastering algebra`}
+            {view === "login" && `${stats.lessons.toLocaleString()} lessons completed`}
+            {view === "role-select" && `Thousands of teachers and learners`}
+            {view === "register" && `Join our growing community`}
+            {view === "verify-email" && `Excited to have you on board!`}
+            
           </p>
         </div>
 
@@ -199,10 +229,10 @@ export default function Auth() {
   /* ── Verify email ── */
   if (view === "verify-email") {
     return (
-      <div className="flex min-h-screen bg-[#f8f8f8] font-sans selection:bg-primary selection:text-primary-foreground">
+      <div className="flex min-h-screen bg-background">
         <motion.div
           initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, ease: "easeOut" }}
-          className="flex flex-col justify-center w-full px-8 py-12 lg:w-1/2 xl:px-32 bg-white"
+          className="flex flex-col justify-center w-full px-8 py-12 lg:w-1/2 xl:px-32 bg-background"
         >
           <div className="max-w-sm mx-auto w-full space-y-8 text-center">
             <div className="flex justify-start"><MathlinguaLogo /></div>
@@ -243,7 +273,7 @@ export default function Auth() {
 
   /* ── Main layout ── */
   return (
-    <div className="flex min-h-screen bg-[#f8f8f8] font-sans selection:bg-primary selection:text-primary-foreground ">
+    <div className="flex min-h-screen bg-background font-sans selection:bg-primary selection:text-primary-foreground ">
 
       {/* Left white form */}
       <motion.div
@@ -465,4 +495,8 @@ export default function Auth() {
       <RightPanel />
     </div>
   );
+}
+
+function setStats(arg0: { users: number; lessons: number; }) {
+  throw new Error("Function not implemented.");
 }
