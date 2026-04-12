@@ -31,24 +31,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isGuest, setIsGuest] = useState(() => localStorage.getItem("algebra-bridge-guest") === "true");
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = async (userId: string) => {
-    const { data: profileData } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("user_id", userId)
-      .single();
-    setProfile(profileData);
+  const fetchProfile = async (userId: string, fallbackRole?: string | null) => {
+    const [{ data: profileData }, { data: roleRows, error: roleError }] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", userId)
+        .maybeSingle(),
+      supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId),
+    ]);
 
-    const { data: roleData } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .single();
-    setUserRole(roleData?.role || null);
+    if (roleError) {
+      console.error("Failed to load user role", roleError);
+    }
+
+    const roles = (roleRows ?? []).map((entry) => entry.role);
+    const resolvedRole = roles.includes("teacher")
+      ? "teacher"
+      : roles.includes("learner")
+        ? "learner"
+        : fallbackRole ?? null;
+
+    setProfile(profileData ?? null);
+    setUserRole(resolvedRole);
   };
 
   const refreshProfile = async () => {
-    if (user) await fetchProfile(user.id);
+    if (user) await fetchProfile(user.id, user.user_metadata?.role ?? null);
   };
 
   useEffect(() => {
@@ -57,7 +69,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          setTimeout(() => fetchProfile(session.user.id), 0);
+          setTimeout(() => fetchProfile(session.user.id, session.user.user_metadata?.role ?? null), 0);
           setIsGuest(false);
           localStorage.removeItem("algebra-bridge-guest");
         } else {
@@ -72,7 +84,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchProfile(session.user.id);
+        fetchProfile(session.user.id, session.user.user_metadata?.role ?? null);
       }
       setLoading(false);
     });
