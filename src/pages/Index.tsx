@@ -14,13 +14,14 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
-import Tarsi from "@/assets/tar.png"
+import Leaner from "@/assets/learner.png"
+import Teacher from "@/assets/teacher.png";
 /* ─────────────────────────────────────────────────────────────────────────────
    MASCOT: Blue bear with graduation cap (Teacher)
 ───────────────────────────────────────────────────────────────────────────── */
 const MascotBlue = () => (
   <div>
-    <img src={Tarsi} alt="Tarsi" width={100} />
+    <img src={Teacher} alt="Teacher" width={100} />
   </div>
 );
 
@@ -28,8 +29,8 @@ const MascotBlue = () => (
    MASCOT: Green bear (Learner) - placeholder
 ───────────────────────────────────────────────────────────────────────────── */
 const MascotGreen = () => (
-  <div>
-    <img src={Tarsi} alt="Tarsi" width={100} />
+    <div>
+    <img src={Leaner} alt="Learner" width={100} />
   </div>
 );
 
@@ -648,9 +649,13 @@ const TeacherDashboard = () => {
               <h1 className="text-2xl font-black text-white">Hi, {displayName}!</h1>
               <p className="text-sm font-semibold mt-0.5" style={{ color: "rgba(255,255,255,0.6)" }}>Your classroom overview</p>
             </div>
-         <button className="flex items-center gap-1 px-3 py-2 rounded-full text-xs font-black"
+            <button className="flex items-center gap-1 px-3 py-2 rounded-full text-xs font-black"
               style={{ background: "rgba(255,255,255,0.18)", color: "white" }} onClick={() => navigate("/class")}>
-              <Plus className="h-3.5 w-3.5" /> New class
+              {stats.classCount > 0 ? (
+                <><BookOpen className="h-3.5 w-3.5" /> My class</>
+              ) : (
+                <><Plus className="h-3.5 w-3.5" /> New class</>
+              )}
             </button>
           </motion.div>
 

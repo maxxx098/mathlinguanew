@@ -1,4 +1,4 @@
-import { useState, useEffect} from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -10,12 +10,12 @@ import {
   Eye, EyeOff, MailCheck, Mail, Lock, User,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable/index";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import Onboarding from "@/components/Onboarding";
-import { userInfo } from "os";
 
-type AuthView = "welcome" | "login" | "register" | "role-select" | "onboarding" | "verify-email";
+type AuthView = "welcome" | "login" | "register" | "role-select" | "onboarding" | "verify-email" | "forgot-password";
 type UserRole = "teacher" | "learner";
 
 /* ── Logo ── */
@@ -58,6 +58,36 @@ export default function Auth() {
   const [registeredEmail, setRegisteredEmail] = useState("");
   const [stats, setStats] = useState({ users: 0, lessons: 0 });
 
+  useEffect(() => {
+    const fetchStats = async () => {
+      const { count: userCount } = await supabase
+        .from("profiles")
+        .select("*", { count: "exact", head: true });
+      const { count: lessonCount } = await supabase
+        .from("assignment_submissions")
+        .select("*", { count: "exact", head: true });
+      setStats({
+        users: userCount || 0,
+        lessons: lessonCount || 0,
+      });
+    };
+    fetchStats();
+  }, []);
+
+  const formatNumber = (num: number) => {
+    if (num >= 1000) return `${Math.floor(num / 1000)}k+`;
+    return num;
+  };
+
+  const handleGoogleSignIn = async () => {
+    const { error } = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: window.location.origin,
+    });
+    if (error) {
+      toast.error("Google sign-in failed. Please try again.");
+    }
+  };
+
   const handleGuestMode = () => {
     localStorage.setItem("algebra-bridge-guest", "true");
     setIsGuest(true);
@@ -90,7 +120,7 @@ export default function Auth() {
       email, password,
       options: {
         data: { display_name: `${firstName} ${lastName}` },
-        emailRedirectTo: `https://mathlingua.vercel.app/`,
+        emailRedirectTo: window.location.origin,
       },
     });
 
@@ -120,34 +150,11 @@ export default function Auth() {
     if (user) await supabase.from("profiles").update({ onboarding_completed: true }).eq("user_id", user.id);
     navigate("/");
   };
-const formatNumber = (num: number) => {
-  if (num >= 1000) return `${Math.floor(num / 1000)}k+`;
-  return num;
-};
 
   const slide = { enter: { x: 30, opacity: 0 }, center: { x: 0, opacity: 1 }, exit: { x: -30, opacity: 0 } };
 
   if (view === "onboarding") return <Onboarding onComplete={handleOnboardingComplete} />;
-useEffect(() => {
-  const fetchStats = async () => {
-    // count users
-    const { count: userCount } = await supabase
-      .from("profiles")
-      .select("*", { count: "exact", head: true });
 
-    // count completed assignments
-    const { count: lessonCount } = await supabase
-      .from("assignment_submissions")
-      .select("*", { count: "exact", head: true });
-
-    setStats({
-      users: userCount || 0,
-      lessons: lessonCount || 0,
-    });
-  };
-
-  fetchStats();
-}, []);
   /* ── Shared right panel ── */
   const RightPanel = () => (
     <motion.div
@@ -168,6 +175,7 @@ useEffect(() => {
               {view === "role-select" && <>Join our<br />community</>}
               {view === "register" && <>Start your<br />journey</>}
               {view === "verify-email" && <>Almost<br />there!</>}
+              {view === "forgot-password" && <>Reset your<br />password</>}
             </h2>
             <p className="text-primary-foreground/60 max-w-sm text-sm font-medium leading-relaxed">
               {view === "welcome" && "Mathlingua helps students master algebraic translations step by step. Join thousands of learners and teachers building math confidence every day."}
@@ -175,15 +183,16 @@ useEffect(() => {
               {view === "role-select" && "Whether you're here to learn or to teach, Mathlingua adapts to your role and helps you achieve your goals."}
               {view === "register" && "Create your account and start translating word problems into equations with confidence and clarity."}
               {view === "verify-email" && "Verify your email to unlock all features and start mastering algebraic translations step by step."}
+              {view === "forgot-password" && "Enter your email and we'll send you a link to reset your password."}
             </p>
           </div>
           <p className="text-primary-foreground/40 text-sm font-bold">
-           {view === "welcome" && `Join ${formatNumber(stats.users)} users mastering algebra`}
+            {view === "welcome" && `Join ${formatNumber(stats.users)} users mastering algebra`}
             {view === "login" && `${stats.lessons.toLocaleString()} lessons completed`}
             {view === "role-select" && `Thousands of teachers and learners`}
             {view === "register" && `Join our growing community`}
             {view === "verify-email" && `Excited to have you on board!`}
-            
+            {view === "forgot-password" && `We'll help you get back in`}
           </p>
         </div>
 
@@ -273,7 +282,7 @@ useEffect(() => {
 
   /* ── Main layout ── */
   return (
-    <div className="flex min-h-screen bg-background font-sans selection:bg-primary selection:text-primary-foreground ">
+    <div className="flex min-h-screen bg-background font-sans selection:bg-primary selection:text-primary-foreground">
 
       {/* Left white form */}
       <motion.div
@@ -295,30 +304,44 @@ useEffect(() => {
                 </div>
                 <div className="space-y-3 pt-2">
                   <Button
-                    className="w-full h-14 bg-[#141414] hover:bg-black text-white font-bold rounded-xl transition-all active:scale-[0.98] text-sm"
+                    className="w-full h-14 bg-foreground hover:bg-foreground/90 text-background font-bold rounded-xl transition-all active:scale-[0.98] text-sm"
                     onClick={() => setView("login")}
                   >
                     Log In <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                   <Button
                     variant="outline"
-                    className="w-full h-14 font-bold rounded-xl border-gray-200 transition-all active:scale-[0.98] text-sm"
+                    className="w-full h-14 font-bold rounded-xl border-border transition-all active:scale-[0.98] text-sm"
                     onClick={() => setView("role-select")}
                   >
                     Create Account
                   </Button>
                   <div className="relative py-1">
-                    <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-gray-100" /></div>
+                    <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
                     <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-white px-3 text-muted-foreground">or</span>
+                      <span className="bg-background px-3 text-muted-foreground">or</span>
                     </div>
                   </div>
                   <button
-                    className="w-full h-14 flex items-center justify-center text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors rounded-xl border border-gray-100 hover:bg-gray-50 shadow-sm"
+                    className="w-full h-14 flex items-center justify-center text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors rounded-xl border border-border hover:bg-muted shadow-sm"
                     onClick={handleGuestMode}
                   >
                     Continue as Guest
                   </button>
+                  <div className="relative py-1">
+                    <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-background px-3 text-muted-foreground">or sign in with</span>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="w-full h-14 font-bold rounded-xl border-border transition-all active:scale-[0.98] text-sm gap-2"
+                    onClick={handleGoogleSignIn}
+                  >
+                    <svg className="h-5 w-5" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+                    Continue with Google
+                  </Button>
                 </div>
                 <p className="text-xs text-muted-foreground text-center">
                   Guest mode shows a limited preview. Create an account for full access.
@@ -337,38 +360,57 @@ useEffect(() => {
                 </div>
                 <form onSubmit={handleLogin} className="space-y-5">
                   <div className="space-y-2">
-                    <Label htmlFor="email" className="text-xs font-bold text-gray-900 uppercase tracking-wider">Email Address</Label>
+                    <Label htmlFor="email" className="text-xs font-bold uppercase tracking-wider">Email Address</Label>
                     <div className="relative">
-                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input id="email" name="email" type="email" placeholder="you@example.com" required
-                        className="pl-11 h-14 bg-white border-gray-100 rounded-xl focus:ring-1 focus:ring-primary focus:border-primary transition-all shadow-sm" />
+                        className="pl-11 h-14 bg-background border-border rounded-xl focus:ring-1 focus:ring-primary focus:border-primary transition-all shadow-sm" />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="password" className="text-xs font-bold text-gray-900 uppercase tracking-wider">Password</Label>
+                    <Label htmlFor="password" className="text-xs font-bold uppercase tracking-wider">Password</Label>
                     <div className="relative">
-                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input id="password" name="password" type={showPassword ? "text" : "password"} placeholder="••••••••" required
-                        className="pl-11 h-14 bg-white border-gray-100 rounded-xl focus:ring-1 focus:ring-primary focus:border-primary transition-all shadow-sm" />
-                      <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-900" onClick={() => setShowPassword(!showPassword)}>
+                        className="pl-11 h-14 bg-background border-border rounded-xl focus:ring-1 focus:ring-primary focus:border-primary transition-all shadow-sm" />
+                      <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" onClick={() => setShowPassword(!showPassword)}>
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox id="remember" className="w-5 h-5 border-gray-300 rounded-md data-[state=checked]:bg-primary data-[state=checked]:border-primary" />
-                    <label htmlFor="remember" className="text-sm font-semibold text-gray-800 cursor-pointer">Remember me</label>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="remember" className="w-5 h-5 border-border rounded-md data-[state=checked]:bg-primary data-[state=checked]:border-primary" />
+                      <label htmlFor="remember" className="text-sm font-semibold cursor-pointer">Remember me</label>
+                    </div>
+                    <button type="button" onClick={() => setView("forgot-password")} className="text-xs text-primary hover:underline font-semibold">
+                      Forgot password?
+                    </button>
                   </div>
                   <Button type="submit" disabled={loading}
-                    className="w-full h-14 bg-[#141414] hover:bg-black text-white font-bold rounded-xl transition-all active:scale-[0.98] text-sm"
+                    className="w-full h-14 bg-foreground hover:bg-foreground/90 text-background font-bold rounded-xl transition-all active:scale-[0.98] text-sm"
                   >
                     {loading ? "Signing in..." : "Sign in"}
                   </Button>
                 </form>
+                <div className="relative py-1">
+                  <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-3 text-muted-foreground">or</span>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  className="w-full h-14 font-bold rounded-xl border-border transition-all active:scale-[0.98] text-sm gap-2"
+                  onClick={handleGoogleSignIn}
+                >
+                  <svg className="h-5 w-5" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+                  Continue with Google
+                </Button>
                 <div className="flex flex-col items-center space-y-3 text-sm">
-                  <p className="text-gray-400 font-medium">
+                  <p className="text-muted-foreground font-medium">
                     Don't have an account?{" "}
-                    <button onClick={() => setView("role-select")} className="font-bold text-gray-600 hover:text-black transition-colors">Sign up</button>
+                    <button onClick={() => setView("role-select")} className="font-bold text-foreground hover:text-primary transition-colors">Sign up</button>
                   </p>
                 </div>
               </motion.div>
@@ -387,7 +429,7 @@ useEffect(() => {
                 <div className="grid grid-cols-2 gap-4">
                   <button
                     onClick={() => { setRole("learner"); setView("register"); }}
-                    className="group flex flex-col items-center gap-3 rounded-2xl border-2 border-gray-100 p-6 transition-all hover:border-success hover:shadow-md active:scale-[0.98] bg-white shadow-sm"
+                    className="group flex flex-col items-center gap-3 rounded-2xl border-2 border-border p-6 transition-all hover:border-success hover:shadow-md active:scale-[0.98] bg-card shadow-sm"
                   >
                     <div className="flex h-14 w-14 items-center justify-center rounded-full bg-success/10 text-success transition-transform group-hover:scale-110">
                       <GraduationCap className="h-7 w-7" />
@@ -399,7 +441,7 @@ useEffect(() => {
                   </button>
                   <button
                     onClick={() => { setRole("teacher"); setView("register"); }}
-                    className="group flex flex-col items-center gap-3 rounded-2xl border-2 border-gray-100 p-6 transition-all hover:border-primary hover:shadow-md active:scale-[0.98] bg-white shadow-sm"
+                    className="group flex flex-col items-center gap-3 rounded-2xl border-2 border-border p-6 transition-all hover:border-primary hover:shadow-md active:scale-[0.98] bg-card shadow-sm"
                   >
                     <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary transition-transform group-hover:scale-110">
                       <Users className="h-7 w-7" />
@@ -410,9 +452,9 @@ useEffect(() => {
                     </div>
                   </button>
                 </div>
-                <p className="text-center text-sm text-gray-400 font-medium">
+                <p className="text-center text-sm text-muted-foreground font-medium">
                   Already have an account?{" "}
-                  <button onClick={() => setView("login")} className="font-bold text-gray-600 hover:text-black transition-colors">Log in</button>
+                  <button onClick={() => setView("login")} className="font-bold text-foreground hover:text-primary transition-colors">Log in</button>
                 </p>
               </motion.div>
             )}
@@ -432,58 +474,96 @@ useEffect(() => {
                 <form onSubmit={handleRegister} className="space-y-4">
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-2">
-                      <Label htmlFor="firstName" className="text-xs font-bold text-gray-900 uppercase tracking-wider">First name</Label>
+                      <Label htmlFor="firstName" className="text-xs font-bold uppercase tracking-wider">First name</Label>
                       <div className="relative">
-                        <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input id="firstName" name="firstName" placeholder="Juan" required
-                          className="pl-11 h-14 bg-white border-gray-100 rounded-xl focus:ring-1 focus:ring-primary shadow-sm" />
+                          className="pl-11 h-14 bg-background border-border rounded-xl focus:ring-1 focus:ring-primary shadow-sm" />
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="lastName" className="text-xs font-bold text-gray-900 uppercase tracking-wider">Last name</Label>
+                      <Label htmlFor="lastName" className="text-xs font-bold uppercase tracking-wider">Last name</Label>
                       <Input id="lastName" name="lastName" placeholder="Dela Cruz" required
-                        className="h-14 bg-white border-gray-100 rounded-xl focus:ring-1 focus:ring-primary shadow-sm" />
+                        className="h-14 bg-background border-border rounded-xl focus:ring-1 focus:ring-primary shadow-sm" />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="reg-email" className="text-xs font-bold text-gray-900 uppercase tracking-wider">Email Address</Label>
+                    <Label htmlFor="reg-email" className="text-xs font-bold uppercase tracking-wider">Email Address</Label>
                     <div className="relative">
-                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input id="reg-email" name="reg-email" type="email" placeholder="you@example.com" required
-                        className="pl-11 h-14 bg-white border-gray-100 rounded-xl focus:ring-1 focus:ring-primary shadow-sm" />
+                        className="pl-11 h-14 bg-background border-border rounded-xl focus:ring-1 focus:ring-primary shadow-sm" />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="reg-password" className="text-xs font-bold text-gray-900 uppercase tracking-wider">Password</Label>
+                    <Label htmlFor="reg-password" className="text-xs font-bold uppercase tracking-wider">Password</Label>
                     <div className="relative">
-                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input id="reg-password" name="reg-password" type={showPassword ? "text" : "password"} placeholder="••••••••" required
-                        className="pl-11 h-14 bg-white border-gray-100 rounded-xl focus:ring-1 focus:ring-primary shadow-sm" />
-                      <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-900" onClick={() => setShowPassword(!showPassword)}>
+                        className="pl-11 h-14 bg-background border-border rounded-xl focus:ring-1 focus:ring-primary shadow-sm" />
+                      <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" onClick={() => setShowPassword(!showPassword)}>
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
                   </div>
                   {role === "learner" && (
                     <div className="space-y-2">
-                      <Label htmlFor="classCode" className="text-xs font-bold text-gray-900 uppercase tracking-wider">
-                        Class Code <span className="normal-case font-normal text-gray-400">(optional)</span>
+                      <Label htmlFor="classCode" className="text-xs font-bold uppercase tracking-wider">
+                        Class Code <span className="normal-case font-normal text-muted-foreground">(optional)</span>
                       </Label>
                       <Input id="classCode" placeholder="e.g. ABC-1234" value={classCode} onChange={(e) => setClassCode(e.target.value)}
-                        className="h-14 bg-white border-gray-100 rounded-xl focus:ring-1 focus:ring-primary shadow-sm" />
+                        className="h-14 bg-background border-border rounded-xl focus:ring-1 focus:ring-primary shadow-sm" />
                       <p className="text-xs text-muted-foreground">Enter a code from your teacher to join a class, or skip to study independently.</p>
                     </div>
                   )}
                   <Button type="submit" disabled={loading}
-                    className="w-full h-14 bg-[#141414] hover:bg-black text-white font-bold rounded-xl transition-all active:scale-[0.98] text-sm"
+                    className="w-full h-14 bg-foreground hover:bg-foreground/90 text-background font-bold rounded-xl transition-all active:scale-[0.98] text-sm"
                   >
                     {loading ? "Creating..." : "Create Account"}
                   </Button>
                 </form>
-                <p className="text-center text-sm text-gray-400 font-medium">
+                <p className="text-center text-sm text-muted-foreground font-medium">
                   Already have an account?{" "}
-                  <button onClick={() => setView("login")} className="font-bold text-gray-600 hover:text-black transition-colors">Log in</button>
+                  <button onClick={() => setView("login")} className="font-bold text-foreground hover:text-primary transition-colors">Log in</button>
                 </p>
+              </motion.div>
+            )}
+
+            {/* ── Forgot Password ── */}
+            {view === "forgot-password" && (
+              <motion.div key="forgot-password" variants={slide} initial="enter" animate="center" exit="exit" transition={{ duration: 0.25 }} className="space-y-8">
+                <button onClick={() => setView("login")} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  <ArrowLeft className="h-4 w-4" /> Back to login
+                </button>
+                <div className="space-y-2">
+                  <h1 className="text-4xl font-bold tracking-tight">Reset password</h1>
+                  <p className="text-muted-foreground text-sm">Enter your email and we'll send you a reset link</p>
+                </div>
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  setLoading(true);
+                  const email = (e.target as HTMLFormElement).elements.namedItem("reset-email") as HTMLInputElement;
+                  const { error } = await supabase.auth.resetPasswordForEmail(email.value, {
+                    redirectTo: `${window.location.origin}/reset-password`,
+                  });
+                  if (error) toast.error(error.message);
+                  else toast.success("Check your email for the reset link!");
+                  setLoading(false);
+                }} className="space-y-5">
+                  <div className="space-y-2">
+                    <Label htmlFor="reset-email" className="text-xs font-bold uppercase tracking-wider">Email Address</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input id="reset-email" name="reset-email" type="email" placeholder="you@example.com" required
+                        className="pl-11 h-14 bg-background border-border rounded-xl focus:ring-1 focus:ring-primary shadow-sm" />
+                    </div>
+                  </div>
+                  <Button type="submit" disabled={loading}
+                    className="w-full h-14 bg-foreground hover:bg-foreground/90 text-background font-bold rounded-xl transition-all active:scale-[0.98] text-sm"
+                  >
+                    {loading ? "Sending..." : "Send Reset Link"}
+                  </Button>
+                </form>
               </motion.div>
             )}
 
@@ -495,8 +575,4 @@ useEffect(() => {
       <RightPanel />
     </div>
   );
-}
-
-function setStats(arg0: { users: number; lessons: number; }) {
-  throw new Error("Function not implemented.");
 }
