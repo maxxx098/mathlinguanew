@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Home, Users, MessageCircle, Bell, User } from "lucide-react";
+import { Home, Users, MessageCircle, Bell, User, Plus } from "lucide-react";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,13 +8,13 @@ import { useAuth } from "@/contexts/AuthContext";
 const BottomNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, userRole } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
+  const [hasClass, setHasClass] = useState(false);
 
   useEffect(() => {
     if (!user) return;
 
-    // Fetch initial unread count
     const fetchUnread = async () => {
       const { count } = await supabase
         .from("notifications")
@@ -24,11 +24,29 @@ const BottomNav = () => {
       setUnreadCount(count || 0);
     };
 
-    fetchUnread();
+    const fetchClassStatus = async () => {
+      if (userRole === "teacher") {
+        const { data } = await supabase
+          .from("classes")
+          .select("id")
+          .eq("teacher_id", user.id)
+          .limit(1);
+        setHasClass((data?.length ?? 0) > 0);
+      } else {
+        const { data } = await supabase
+          .from("class_members")
+          .select("id")
+          .eq("user_id", user.id)
+          .limit(1);
+        setHasClass((data?.length ?? 0) > 0);
+      }
+    };
 
-    // Subscribe to real-time changes
+    fetchUnread();
+    fetchClassStatus();
+
     const channel = supabase
-      .channel("notifications")
+      .channel("nav-notifications")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
@@ -37,54 +55,81 @@ const BottomNav = () => {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [user]);
+  }, [user, userRole]);
 
   const tabs = [
     { path: "/", label: "Home", icon: Home },
-    { path: "/class", label: "Class", icon: Users },
     { path: "/community", label: "Community", icon: MessageCircle },
     { path: "/notifications", label: "Alerts", icon: Bell, badge: unreadCount },
     { path: "/profile", label: "Profile", icon: User },
   ];
 
+  const handleFabClick = () => {
+    navigate("/class");
+  };
+
+  const fabLabel = (() => {
+    if (userRole === "teacher") {
+      return hasClass ? "My Class" : "New";
+    }
+    return hasClass ? "My Class" : "Join";
+  })();
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-card/95 backdrop-blur-md safe-area-bottom">
-      <div className="mx-auto flex max-w-lg items-center justify-around px-2 py-2 h-16">
+    <div className="fixed bottom-6 left-0 right-0 z-50 flex items-center justify-center px-6 safe-area-bottom">
+      {/* Floating pill nav */}
+      <nav className="flex items-center gap-1 rounded-full bg-card/95 backdrop-blur-md border border-border px-3 py-2 shadow-xl">
         {tabs.map((tab) => {
           const isActive = location.pathname === tab.path;
           const Icon = tab.icon;
+
           return (
             <button
               key={tab.path}
               onClick={() => navigate(tab.path)}
-              className={`nav-tab relative flex flex-col items-center justify-center w-16 h-full ${
-                isActive ? "nav-tab-active" : ""
-              }`}
+              className="relative flex flex-col items-center justify-center"
             >
-              {isActive && (
-                <motion.div
-                  layoutId="nav-indicator"
-                  className="absolute top-0 left-0 right-0 mx-auto h-0.5 w-6 rounded-full bg-primary"
-                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                />
-              )}
-
-              {/* Icon wrapper with badge */}
-              <div className="relative">
-                <Icon className="h-5 w-5" />
-                {tab.badge > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center leading-none">
-                    {tab.badge > 99 ? "99+" : tab.badge}
+              <motion.div
+                className={`relative flex flex-col items-center justify-center gap-0.5 rounded-full px-4 py-2 transition-colors duration-200 ${
+                  isActive
+                    ? "bg-primary/15 text-primary"
+                    : "text-muted-foreground"
+                }`}
+                whileTap={{ scale: 0.92 }}
+              >
+                {/* Badge */}
+                {(tab.badge ?? 0) > 0 && (
+                  <span className="absolute -top-1 right-2 min-w-[16px] h-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center leading-none">
+                    {(tab.badge ?? 0) > 99 ? "99+" : tab.badge}
                   </span>
                 )}
-              </div>
 
-              <span className="text-[10px] mt-0.5">{tab.label}</span>
+                <Icon className="h-5 w-5" strokeWidth={isActive ? 2.2 : 1.8} />
+                <span
+                  className={`text-[10px] font-medium leading-none ${
+                    isActive ? "text-primary" : "text-muted-foreground"
+                  }`}
+                >
+                  {tab.label}
+                </span>
+              </motion.div>
             </button>
           );
         })}
-      </div>
-    </nav>
+      </nav>
+
+      {/* FAB button */}
+      <button
+        onClick={handleFabClick}
+        className="ml-3 flex h-12 shrink-0 items-center justify-center rounded-full bg-primary shadow-lg active:scale-95 transition-transform gap-1.5 px-4"
+        aria-label={fabLabel}
+      >
+        <Plus className="h-5 w-5 text-primary-foreground" strokeWidth={2.5} />
+        <span className="text-primary-foreground text-xs font-semibold whitespace-nowrap">
+          {fabLabel}
+        </span>
+      </button>
+    </div>
   );
 };
 

@@ -142,6 +142,11 @@ export default function Auth() {
     if (data.user) {
       const selectedRole = role || "learner";
       const needsVerification = !data.session;
+      
+      await supabase.rpc("set_user_role" as any, { 
+        _user_id: data.user.id, 
+        _role: selectedRole 
+      });
 
       if (data.session) {
         await supabase.from("profiles").update({

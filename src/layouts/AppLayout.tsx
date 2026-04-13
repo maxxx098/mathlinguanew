@@ -7,7 +7,7 @@ const AppLayout = () => {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center">
         <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
       </div>
     );
@@ -18,10 +18,8 @@ const AppLayout = () => {
   }
 
   return (
-    <div className="fixed inset-0 mx-auto max-w-lg bg-background flex flex-col">
-      <main className="flex-1 overflow-y-auto pb-16 scrollbar-hide">
-        <Outlet />
-      </main>
+    <div className="mx-auto min-h-screen max-w-lg bg-background pb-24">
+      <Outlet />
       <BottomNav />
     </div>
   );
