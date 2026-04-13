@@ -58,6 +58,19 @@ export default function Auth() {
   const [registeredEmail, setRegisteredEmail] = useState("");
   const [stats, setStats] = useState({ users: 0, lessons: 0 });
 
+  // Handle OTP expired / access_denied errors from email verification links
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash.includes("error=access_denied") || hash.includes("otp_expired")) {
+      const params = new URLSearchParams(hash.replace("#", ""));
+      const desc = params.get("error_description") || "Email link is invalid or has expired";
+      toast.error(desc);
+      setView("login");
+      // Clean up the URL hash
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, []);
+
   useEffect(() => {
     const fetchStats = async () => {
       const { count: userCount } = await supabase
@@ -119,7 +132,7 @@ export default function Auth() {
     const { data, error } = await supabase.auth.signUp({
       email, password,
       options: {
-        data: { display_name: `${firstName} ${lastName}` },
+        data: { display_name: `${firstName} ${lastName}`, role: role || "learner", first_name: firstName, last_name: lastName },
         emailRedirectTo: window.location.origin,
       },
     });
@@ -127,14 +140,19 @@ export default function Auth() {
     if (error) { toast.error(error.message); setLoading(false); return; }
 
     if (data.user) {
+      const selectedRole = role || "learner";
       const needsVerification = !data.session;
-      await supabase.from("user_roles").insert({ user_id: data.user.id, role: (role || "learner") as any });
-      await supabase.from("profiles").update({
-        first_name: firstName, last_name: lastName,
-        display_name: `${firstName} ${lastName}`,
-      }).eq("user_id", data.user.id);
 
-      if (classCode.trim() && role === "learner") {
+      if (data.session) {
+        await supabase.from("profiles").update({
+          first_name: firstName,
+          last_name: lastName,
+          display_name: `${firstName} ${lastName}`,
+          role: selectedRole,
+        }).eq("user_id", data.user.id);
+      }
+
+      if (classCode.trim() && selectedRole === "learner" && data.session) {
         const { data: classLookup } = await supabase.rpc("get_class_by_code", { _class_code: classCode.trim().toUpperCase() });
         const classData = classLookup?.[0];
         if (classData) await supabase.from("class_members").insert({ class_id: classData.id, user_id: data.user.id });
