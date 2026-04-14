@@ -15,7 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import Onboarding from "@/components/Onboarding";
 
-type AuthView = "welcome" | "login" | "register" | "role-select" | "onboarding" | "verify-email" | "forgot-password";
+type AuthView = "welcome" | "login" | "register" | "role-select" | "onboarding" | "verify-email" | "forgot-password" | "reset-email-sent";
 type UserRole = "teacher" | "learner";
 
 /* ── Logo ── */
@@ -56,6 +56,7 @@ export default function Auth() {
   const [classCode, setClassCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState("");
+  const [resetEmail, setResetEmail] = useState("");
   const [stats, setStats] = useState({ users: 0, lessons: 0 });
 
   // Handle OTP expired / access_denied errors from email verification links
@@ -139,22 +140,33 @@ export default function Auth() {
 
     if (error) { toast.error(error.message); setLoading(false); return; }
 
+    // Detect duplicate email (Supabase returns a fake user with empty identities)
+    if (data.user && (!data.user.identities || data.user.identities.length === 0)) {
+      toast.error("An account with this email already exists. Please log in instead.");
+      setLoading(false);
+      return;
+    }
+
     if (data.user) {
       const selectedRole = role || "learner";
       const needsVerification = !data.session;
       
-      await supabase.rpc("set_user_role" as any, { 
-        _user_id: data.user.id, 
-        _role: selectedRole 
-      });
+      // Update profile with role and name information
+      const { error: roleError } = await supabase.from("profiles").update({
+        first_name: firstName,
+        last_name: lastName,
+        display_name: `${firstName} ${lastName}`,
+        role: selectedRole,
+      }).eq("user_id", data.user.id);
+
+      if (roleError) {
+        toast.error("We couldn't save your account role. Please try again.");
+        setLoading(false);
+        return;
+      }
 
       if (data.session) {
-        await supabase.from("profiles").update({
-          first_name: firstName,
-          last_name: lastName,
-          display_name: `${firstName} ${lastName}`,
-          role: selectedRole,
-        }).eq("user_id", data.user.id);
+        // Profile already updated above
       }
 
       if (classCode.trim() && selectedRole === "learner" && data.session) {
@@ -198,7 +210,7 @@ export default function Auth() {
               {view === "role-select" && <>Join our<br />community</>}
               {view === "register" && <>Start your<br />journey</>}
               {view === "verify-email" && <>Almost<br />there!</>}
-              {view === "forgot-password" && <>Reset your<br />password</>}
+              {(view === "forgot-password" || view === "reset-email-sent") && <>Reset your<br />password</>}
             </h2>
             <p className="text-primary-foreground/60 max-w-sm text-sm font-medium leading-relaxed">
               {view === "welcome" && "Mathlingua helps students master algebraic translations step by step. Join thousands of learners and teachers building math confidence every day."}
@@ -206,7 +218,8 @@ export default function Auth() {
               {view === "role-select" && "Whether you're here to learn or to teach, Mathlingua adapts to your role and helps you achieve your goals."}
               {view === "register" && "Create your account and start translating word problems into equations with confidence and clarity."}
               {view === "verify-email" && "Verify your email to unlock all features and start mastering algebraic translations step by step."}
-              {view === "forgot-password" && "Enter your email and we'll send you a link to reset your password."}
+              {view === "forgot-password" && "Enter your email and we'll send you a reset link."}
+              {view === "reset-email-sent" && "Check your inbox for the reset link."}
             </p>
           </div>
           <p className="text-primary-foreground/40 text-sm font-bold">
@@ -215,7 +228,7 @@ export default function Auth() {
             {view === "role-select" && `Thousands of teachers and learners`}
             {view === "register" && `Join our growing community`}
             {view === "verify-email" && `Excited to have you on board!`}
-            {view === "forgot-password" && `We'll help you get back in`}
+            {(view === "forgot-password" || view === "reset-email-sent") && `We'll help you get back in`}
           </p>
         </div>
 
@@ -569,8 +582,9 @@ export default function Auth() {
                   const { error } = await supabase.auth.resetPasswordForEmail(email.value, {
                     redirectTo: `${window.location.origin}/reset-password`,
                   });
-                  if (error) toast.error(error.message);
-                  else toast.success("Check your email for the reset link!");
+                  if (error) { toast.error(error.message); setLoading(false); return; }
+                  setResetEmail(email.value);
+                  setView("reset-email-sent");
                   setLoading(false);
                 }} className="space-y-5">
                   <div className="space-y-2">
@@ -587,6 +601,43 @@ export default function Auth() {
                     {loading ? "Sending..." : "Send Reset Link"}
                   </Button>
                 </form>
+              </motion.div>
+            )}
+
+            {/* ── Reset Email Sent Confirmation ── */}
+            {view === "reset-email-sent" && (
+              <motion.div key="reset-email-sent" variants={slide} initial="enter" animate="center" exit="exit" transition={{ duration: 0.25 }} className="space-y-8">
+                <div className="space-y-2 text-center">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 mb-2">
+                    <MailCheck className="h-7 w-7 text-primary" />
+                  </div>
+                  <h1 className="text-4xl font-bold tracking-tight">Check your email</h1>
+                  <p className="text-muted-foreground text-sm">
+                    We sent a password reset link to <span className="font-semibold text-foreground">{resetEmail}</span>
+                  </p>
+                  <p className="text-muted-foreground text-xs pt-2">Click the link in your email to set a new password. Check spam if you don't see it.</p>
+                </div>
+                <div className="space-y-3">
+                  <Button
+                    variant="outline"
+                    className="w-full h-14 rounded-xl font-bold text-sm"
+                    onClick={async () => {
+                      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+                        redirectTo: `${window.location.origin}/reset-password`,
+                      });
+                      if (error) toast.error(error.message);
+                      else toast.success("Reset link resent!");
+                    }}
+                  >
+                    Resend link
+                  </Button>
+                  <button
+                    onClick={() => setView("login")}
+                    className="w-full text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Back to login
+                  </button>
+                </div>
               </motion.div>
             )}
 
