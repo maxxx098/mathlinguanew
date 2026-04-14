@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import Onboarding from "@/components/Onboarding";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 import DailyChallenge from "@/components/DailyChallenge";
 import { Plus, MoreHorizontal, Lock, Check, Star, Users, ClipboardList, TrendingUp, BookOpen, Award, Target, AlertTriangle, Clock, CheckCircle2 } from "lucide-react";
@@ -19,6 +19,7 @@ import { Separator } from "@/components/ui/separator";
 
 import Learner from "@/assets/learner.png"
 import Teacher from "@/assets/teacher.png"
+
 /* ─────────────────────────────────────────────────────────────────────────────
    MASCOT: Blue bear with graduation cap (Teacher)
 ───────────────────────────────────────────────────────────────────────────── */
@@ -29,12 +30,15 @@ const MascotBlue = () => (
 );
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   MASCOT: Green bear (Learner) - placeholder
+   MASCOT: Green bear (Learner) - floating animation
 ───────────────────────────────────────────────────────────────────────────── */
 const MascotGreen = () => (
-  <div>
-    <img src={Learner} alt="Learner Mascot" width={100}/>
-  </div>
+  <motion.div
+    animate={{ y: [0, -8, 0] }}
+    transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
+  >
+    <img src={Learner} alt="Learner Mascot" width={110} />
+  </motion.div>
 );
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -65,7 +69,35 @@ const WeekBarChart = ({ accent = "#4ade80" }: { accent?: string }) => {
 };
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   Pill tab switcher
+   Learner Tab Switcher — editorial style, underline indicator
+───────────────────────────────────────────────────────────────────────────── */
+const LearnerTabs = ({ tabs, active, onChange }: { tabs: string[]; active: string; onChange: (t: string) => void }) => (
+  <div className="flex gap-0 ">
+    {tabs.map(tab => {
+      const isActive = active === tab;
+      return (
+        <button
+          key={tab}
+          onClick={() => onChange(tab)}
+          className="relative px-5 py-3 text-[11px] font-black uppercase tracking-[0.15em] transition-colors"
+          style={{ color: isActive ? "#27ff72" : "rgba(255,255,255,0.4)" }}
+        >
+          {tab}
+          {isActive && (
+            <motion.div
+              layoutId="learner-tab-underline"
+              className="absolute bottom-0 left-0 right-0 h-[2px]"
+              style={{ background: "#27ff72" }}
+            />
+          )}
+        </button>
+      );
+    })}
+  </div>
+);
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Pill tab switcher (used in TeacherDashboard)
 ───────────────────────────────────────────────────────────────────────────── */
 const PillTabs = ({ tabs, active, onChange }: { tabs: string[]; active: string; onChange: (t: string) => void }) => (
   <div className="flex gap-1 p-1 rounded-full bg-black/20">
@@ -85,7 +117,6 @@ const PillTabs = ({ tabs, active, onChange }: { tabs: string[]; active: string; 
    Lesson / Content card
 ───────────────────────────────────────────────────────────────────────────── */
 const getLevelIcon = (title: string, emoji: string): string => {
-  // Use meaningful math symbols based on title keywords
   const t = title.toLowerCase();
   if (t.includes("linear")) return "X";
   if (t.includes("variable")) return "Σ";
@@ -99,7 +130,6 @@ const getLevelIcon = (title: string, emoji: string): string => {
   if (t.includes("factor")) return "×";
   if (t.includes("polynom")) return "P";
   if (t.includes("review")) return "★";
-  // Fallback: first letter of title
   return title.charAt(0).toUpperCase() || emoji;
 };
 
@@ -175,7 +205,7 @@ const ClassCard = ({ icon, title, subtitle, metric, metricLabel, bg, fg, progres
 );
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   Assignment Deadline Card (sits beside class cards in overview grid)
+   Assignment Deadline Card
 ───────────────────────────────────────────────────────────────────────────── */
 interface AssignmentWithDeadline {
   id: string;
@@ -209,9 +239,7 @@ const AssignmentDeadlineCard = ({ items }: { items: AssignmentWithDeadline[] }) 
             return (
               <div key={a.id} className="flex items-center justify-between px-4 py-3 gap-2">
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-extrabold text-foreground truncate">
-                    {a.title || "Assignment"}
-                  </p>
+                  <p className="text-xs font-extrabold text-foreground truncate">{a.title || "Assignment"}</p>
                   <p className="text-[10px] text-muted-foreground font-semibold truncate">{a.className}</p>
                 </div>
                 <div className="flex items-center gap-1 px-2 py-1 rounded-full flex-shrink-0"
@@ -230,7 +258,7 @@ const AssignmentDeadlineCard = ({ items }: { items: AssignmentWithDeadline[] }) 
 
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   TEACHER DASHBOARD
+   TEACHER DASHBOARD (unchanged)
 ───────────────────────────────────────────────────────────────────────────── */
 const TeacherDashboard = () => {
   const { user, profile } = useAuth();
@@ -269,16 +297,13 @@ const TeacherDashboard = () => {
             progressByUser[p.user_id].total += (p.total_questions || 0);
           });
 
-          // Find students needing attention (avg < 50% or no progress)
           const { data: profs } = await supabase.from("profiles").select("user_id, display_name").in("user_id", memberIds);
           const profMap = Object.fromEntries((profs || []).map((p: any) => [p.user_id, p.display_name || "Unknown"]));
           const struggling: typeof needsAttention = [];
           memberIds.forEach(uid => {
             const prog = progressByUser[uid];
             const avg = prog && prog.total > 0 ? Math.round((prog.score / prog.total) * 100) : 0;
-            if (avg < 50) {
-              struggling.push({ name: profMap[uid] || "Unknown", avgScore: avg, userId: uid });
-            }
+            if (avg < 50) struggling.push({ name: profMap[uid] || "Unknown", avgScore: avg, userId: uid });
           });
           setNeedsAttention(struggling.slice(0, 5));
         }
@@ -299,7 +324,6 @@ const TeacherDashboard = () => {
           return { id: c.id, name: c.name, class_code: c.class_code, studentCount: classMembers.length, assignmentCount: classAssigns.length, avgScore };
         });
 
-        // Fetch submissions count for each assignment
         const assignmentDetails = await Promise.all(allAssignments.map(async (a: any) => {
           const { data: subs } = await supabase.from("assignment_submissions").select("id").eq("assignment_id", a.id);
           const cls = allClasses.find((c: any) => c.id === a.class_id);
@@ -335,7 +359,6 @@ const TeacherDashboard = () => {
   const getAssignmentDueLabel = (value: string | null | undefined) => {
     const dueDate = parseValidDate(value);
     if (!dueDate) return null;
-
     const daysLeft = Math.ceil((dueDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
     if (daysLeft < 0) return "Overdue";
     if (daysLeft === 0) return "Due today";
@@ -344,14 +367,10 @@ const TeacherDashboard = () => {
   };
   const timeAgo = (d: string) => { const m = Math.floor((Date.now() - new Date(d).getTime()) / 60000); if (m < 60) return `${m}m`; const h = Math.floor(m / 60); if (h < 24) return `${h}h`; return `${Math.floor(h / 24)}d`; };
   const classCardColors = ["#1565c0", "#0d9488", "#7c3aed", "#d97706", "#2d7a45", "#dc2626"];
-
-  // Compute overall avg
   const overallAvg = classes.length > 0 ? Math.round(classes.reduce((s, c) => s + c.avgScore, 0) / classes.length) : 0;
 
-  /* ── Tab: Overview ─────────────────────────────────── */
   const renderOverview = () => (
     <div className="space-y-5">
-      {/* Insight card */}
       <div className="rounded-2xl p-4 flex items-center justify-between gap-3 bg-card border border-border">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1.5">
@@ -367,7 +386,6 @@ const TeacherDashboard = () => {
         <WeekBarChart accent="#60a5fa" />
       </div>
 
-      {/* Classes grid */}
       <div>
         <div className="flex justify-between items-center mb-3">
           <p className="font-black text-foreground text-sm">Classes</p>
@@ -394,13 +412,11 @@ const TeacherDashboard = () => {
                 />
               </div>
             ))}
-            {/* Assignment Deadline card beside classes */}
             <AssignmentDeadlineCard items={assignments.map(a => {
               const d = parseValidDate(a.due_date);
               const daysLeft = d ? Math.ceil((d.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : 999;
               return { id: a.id, title: a.title, className: a.class_name, daysLeft };
             }).filter(a => a.daysLeft <= 14).sort((a, b) => a.daysLeft - b.daysLeft)} />
-            {/* Needs Attention card */}
             {needsAttention.length > 0 && (
               <div className="rounded-2xl p-4 flex flex-col gap-2" style={{ background: "#111827" }}>
                 <div className="flex justify-between items-start">
@@ -423,7 +439,6 @@ const TeacherDashboard = () => {
         )}
       </div>
 
-      {/* Assignments summary */}
       <div>
         <div className="flex justify-between items-center mb-3">
           <p className="font-black text-foreground text-sm">Assignments</p>
@@ -443,8 +458,7 @@ const TeacherDashboard = () => {
               return (
                 <div key={a.id} onClick={() => setActiveTab("Assignments")} className="cursor-pointer rounded-2xl p-4 flex flex-col gap-2" style={{ background: ["#0d9488", "#7c3aed", "#d97706", "#1565c0"][i % 4] }}>
                   <div className="flex justify-between items-start">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm"
-                      style={{ background: "rgba(0,0,0,0.2)", color: "#fff" }}>
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm" style={{ background: "rgba(0,0,0,0.2)", color: "#fff" }}>
                       <ClipboardList className="h-4 w-4" />
                     </div>
                     <MoreHorizontal className="h-4 w-4" style={{ color: "rgba(255,255,255,0.4)" }} />
@@ -475,7 +489,6 @@ const TeacherDashboard = () => {
         )}
       </div>
 
-      {/* Recent Activity */}
       <div>
         <p className="font-black text-foreground text-sm mb-3">Recent Activity</p>
         <div className="rounded-2xl overflow-hidden bg-card border border-border">
@@ -505,7 +518,6 @@ const TeacherDashboard = () => {
     </div>
   );
 
-  /* ── Tab: Classes ──────────────────────────────────── */
   const renderClasses = () => (
     <div className="space-y-5">
       <div className="flex justify-between items-center">
@@ -519,9 +531,7 @@ const TeacherDashboard = () => {
           <BookOpen className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
           <p className="text-sm font-bold text-foreground mb-1">No classes yet</p>
           <p className="text-xs text-muted-foreground mb-3">Create your first class to get started</p>
-          <button onClick={() => navigate("/class")} className="px-4 py-2 rounded-full text-xs font-black text-white" style={{ background: "#1565c0" }}>
-            Create Class
-          </button>
+          <button onClick={() => navigate("/class")} className="px-4 py-2 rounded-full text-xs font-black text-white" style={{ background: "#1565c0" }}>Create Class</button>
         </div>
       ) : (
         <div className="space-y-3">
@@ -557,8 +567,6 @@ const TeacherDashboard = () => {
           ))}
         </div>
       )}
-
-      {/* Needs attention section */}
       {needsAttention.length > 0 && (
         <div>
           <p className="font-black text-foreground text-sm mb-3">Students Needing Attention</p>
@@ -566,9 +574,7 @@ const TeacherDashboard = () => {
             {needsAttention.map((s, i) => (
               <div key={i}>
                 <div className="flex items-center gap-3 px-4 py-3">
-                  <div className="h-8 w-8 rounded-full flex items-center justify-center font-black text-[10px] text-white bg-red-500/80">
-                    {s.name.charAt(0)}
-                  </div>
+                  <div className="h-8 w-8 rounded-full flex items-center justify-center font-black text-[10px] text-white bg-red-500/80">{s.name.charAt(0)}</div>
                   <div className="flex-1">
                     <p className="text-sm font-extrabold text-foreground">{s.name}</p>
                     <p className="text-[10px] font-bold text-muted-foreground">Avg: {s.avgScore}%</p>
@@ -584,7 +590,6 @@ const TeacherDashboard = () => {
     </div>
   );
 
-  /* ── Tab: Assignments ──────────────────────────────── */
   const renderAssignments = () => (
     <div className="space-y-5">
       <div className="flex justify-between items-center">
@@ -598,9 +603,7 @@ const TeacherDashboard = () => {
           <ClipboardList className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
           <p className="text-sm font-bold text-foreground mb-1">No assignments yet</p>
           <p className="text-xs text-muted-foreground mb-3">Create assignments from your class page</p>
-          <button onClick={() => navigate("/class")} className="px-4 py-2 rounded-full text-xs font-black text-white" style={{ background: "#1565c0" }}>
-            Go to Classes
-          </button>
+          <button onClick={() => navigate("/class")} className="px-4 py-2 rounded-full text-xs font-black text-white" style={{ background: "#1565c0" }}>Go to Classes</button>
         </div>
       ) : (
         <div className="space-y-3">
@@ -617,18 +620,14 @@ const TeacherDashboard = () => {
                   </div>
                   {dueDate && (
                     <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                      <Badge variant="outline" className="text-[9px]">
-                        Due {dueDate.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-                      </Badge>
+                      <Badge variant="outline" className="text-[9px]">Due {dueDate.toLocaleDateString(undefined, { month: "short", day: "numeric" })}</Badge>
                       {dueLabel && <span className="text-[10px] font-bold text-muted-foreground">{dueLabel}</span>}
                     </div>
                   )}
                 </div>
                 {a.description && <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{a.description}</p>}
                 <div className="flex items-center gap-3">
-                  <div className="flex-1">
-                    <Progress value={pct} className="h-1.5" />
-                  </div>
+                  <div className="flex-1"><Progress value={pct} className="h-1.5" /></div>
                   <span className="text-[10px] font-black text-muted-foreground">{a.submissions}/{a.total_students} submitted</span>
                 </div>
               </div>
@@ -642,8 +641,6 @@ const TeacherDashboard = () => {
   return (
     <div className="min-h-screen pb-24 bg-background" style={{ fontFamily: "'Nunito',sans-serif" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap');`}</style>
-
-      {/* Blue header */}
       <div style={{ background: "#1565c0", borderBottomLeftRadius: 28, borderBottomRightRadius: 28 }}>
         <div className="max-w-screen-md mx-auto px-5 pt-12 pb-7">
           <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
@@ -654,29 +651,20 @@ const TeacherDashboard = () => {
             </div>
             <button className="flex items-center gap-1 px-3 py-2 rounded-full text-xs font-black"
               style={{ background: "rgba(255,255,255,0.18)", color: "white" }} onClick={() => navigate("/class")}>
-              {stats.classCount > 0 ? (
-                <><BookOpen className="h-3.5 w-3.5" /> My class</>
-              ) : (
-                <><Plus className="h-3.5 w-3.5" /> New class</>
-              )}
+              {stats.classCount > 0 ? <><BookOpen className="h-3.5 w-3.5" /> My class</> : <><Plus className="h-3.5 w-3.5" /> New class</>}
             </button>
           </motion.div>
-
           <div className="flex items-center gap-5 mb-6">
             <MascotBlue />
             <div>
               <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.5)" }}>STUDENTS</p>
               <p className="text-5xl font-black text-white leading-none">{stats.studentCount}</p>
-              <p className="text-xs font-bold mt-1" style={{ color: "rgba(255,255,255,0.55)" }}>
-                Across {stats.classCount} active {stats.classCount === 1 ? "class" : "classes"}
-              </p>
+              <p className="text-xs font-bold mt-1" style={{ color: "rgba(255,255,255,0.55)" }}>Across {stats.classCount} active {stats.classCount === 1 ? "class" : "classes"}</p>
             </div>
           </div>
-
           <PillTabs tabs={["Overview", "Classes", "Assignments"]} active={activeTab} onChange={setActiveTab} />
         </div>
       </div>
-
       <div className="max-w-screen-md mx-auto px-5 py-5">
         {activeTab === "Overview" && renderOverview()}
         {activeTab === "Classes" && renderClasses()}
@@ -687,7 +675,7 @@ const TeacherDashboard = () => {
 };
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   LEARNER HOME
+   LEARNER HOME — Bold editorial dark header (app.tsx aesthetic)
 ───────────────────────────────────────────────────────────────────────────── */
 interface LevelWithStatus {
   id: string;
@@ -726,10 +714,7 @@ const StageLevelItem = ({ level, onClick, colorIdx }: { level: LevelWithStatus; 
   const isLocked = level.status === "locked";
   const isCompleted = level.status === "completed";
   const isCurrent = level.status === "current";
-
-  const scoreText = level.score != null && level.total_questions != null
-    ? `${level.score}/${level.total_questions}`
-    : null;
+  const scoreText = level.score != null && level.total_questions != null ? `${level.score}/${level.total_questions}` : null;
 
   return (
     <button
@@ -754,21 +739,9 @@ const StageLevelItem = ({ level, onClick, colorIdx }: { level: LevelWithStatus; 
           </p>
         </div>
         <div className="text-right flex-shrink-0">
-          {isCompleted && (
-            <span className="text-[10px] font-black" style={{ color: "#4ade80" }}>
-              {scoreText || "Done ✓"}
-            </span>
-          )}
-          {isCurrent && (
-            <span className="text-[10px] font-black" style={{ color: color.fg }}>
-              Start →
-            </span>
-          )}
-          {isLocked && (
-            <span className="text-[10px] font-black" style={{ color: `${color.fg}60` }}>
-              Locked
-            </span>
-          )}
+          {isCompleted && <span className="text-[10px] font-black" style={{ color: "#4ade80" }}>{scoreText || "Done ✓"}</span>}
+          {isCurrent && <span className="text-[10px] font-black" style={{ color: color.fg }}>Start →</span>}
+          {isLocked && <span className="text-[10px] font-black" style={{ color: `${color.fg}60` }}>Locked</span>}
         </div>
       </div>
     </button>
@@ -794,9 +767,7 @@ const LearnerHome = () => {
       let progressMap: Record<string, { completed: boolean; score?: number; total_questions?: number }> = {};
       if (user) {
         const { data: progressData } = await supabase
-          .from("user_progress")
-          .select("level_id, completed, score, total_questions")
-          .eq("user_id", user.id);
+          .from("user_progress").select("level_id, completed, score, total_questions").eq("user_id", user.id);
         if (progressData) {
           progressData.forEach(p => {
             progressMap[p.level_id] = { completed: !!p.completed, score: p.score ?? undefined, total_questions: p.total_questions ?? undefined };
@@ -818,23 +789,15 @@ const LearnerHome = () => {
                 foundCurrent = true;
               }
               return {
-                id: l.id,
-                title: l.title,
-                order_index: l.order_index,
-                stage_id: l.stage_id,
-                stage_title: s.title,
-                stage_emoji: s.emoji || "📘",
-                stage_description: s.description,
-                is_review: l.is_review || false,
-                status,
-                score: progressMap[l.id]?.score,
-                total_questions: progressMap[l.id]?.total_questions,
+                id: l.id, title: l.title, order_index: l.order_index, stage_id: l.stage_id,
+                stage_title: s.title, stage_emoji: s.emoji || "📘", stage_description: s.description,
+                is_review: l.is_review || false, status,
+                score: progressMap[l.id]?.score, total_questions: progressMap[l.id]?.total_questions,
               } as LevelWithStatus;
             });
           return { id: s.id, title: s.title, emoji: s.emoji || "📘", description: s.description, order_index: s.order_index, levels: stageLevels };
         });
 
-        // For guests, unlock first 2 levels
         if (isGuest && !user) {
           let unlocked = 0;
           builtStages.forEach(st => {
@@ -865,8 +828,8 @@ const LearnerHome = () => {
 
   const displayName = profile?.display_name || profile?.first_name || (isGuest ? "Guest" : "Learner");
   const progress = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
+  const streak = stats.completed > 0 ? Math.min(stats.completed, 7) : 0;
 
-  // Filter stages based on tab
   const filteredStages = stages.map(stage => {
     let filteredLevels = stage.levels;
     if (activeTab === "Completed") filteredLevels = stage.levels.filter(l => l.status === "completed");
@@ -874,83 +837,200 @@ const LearnerHome = () => {
     return { ...stage, levels: filteredLevels };
   }).filter(s => s.levels.length > 0);
 
-  // Determine current stage for highlighting
   const currentStageId = stages.find(s => s.levels.some(l => l.status === "current"))?.id;
 
-  function setShowJoinClass(arg0: boolean): void {
-    throw new Error("Function not implemented.");
-  }
+  // Find current stage name for the header description
+  const currentStage = stages.find(s => s.id === currentStageId);
 
   return (
     <div className="min-h-screen pb-24 bg-background" style={{ fontFamily: "'Nunito',sans-serif" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap');`}</style>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap');
+        .neon-text { color: #27ff72; }
+        .neon-border { border-color: #27ff72; }
+      `}</style>
 
-      {/* Green header */}
-      <div style={{ background: "#2d7a45", borderBottomLeftRadius: 28, borderBottomRightRadius: 28 }}>
-        <div className="max-w-screen-md mx-auto px-5 pt-12 pb-7">
-          <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-            className="flex justify-between items-start mb-5">
-            <div>
-              <h1 className="text-2xl font-black text-white">Hi, {displayName}!</h1>
-              <p className="text-sm font-semibold mt-0.5" style={{ color: "rgba(255,255,255,0.6)" }}>Your algebra journey</p>
-            </div>
+      {/* ── DARK EDITORIAL HEADER ── */}
+      <div style={{ background: "#0f1117", borderBottomLeftRadius: 28, borderBottomRightRadius: 28}} className="pb-10">
+        <div className="max-w-screen-md mx-auto">
+
+          {/* Top bar */}
+          <div className="px-5 pt-12 pb-0 flex justify-between items-start">
+            <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: "rgba(255,255,255,0.3)" }}>
+                Student Overview
+              </p>
+              <h1 className="text-2xl font-black mt-0.5" style={{ color: "white" }}>
+                Good morning, <span style={{ color: "#27ff72" }}>{displayName}</span>
+              </h1>
+            </motion.div>
             <HeartsHeaderPill />
-          </motion.div>
-
-          <div className="flex items-center gap-4 mb-6">
-            <div className="w-auto flex-shrink-0">
-              <MascotGreen />
-            </div>
-            <div className="flex-1">
-              <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.5)" }}>PROGRESS</p>
-              <p className="text-5xl font-black text-white leading-none">{progress}%</p>
-              <p className="text-xs font-bold mt-1" style={{ color: "rgba(255,255,255,0.55)" }}>
-                {stats.completed} of {stats.total} lessons complete
-              </p>
-            </div>
-            {/* Streak card */}
-            <div
-              className="flex-shrink-0 rounded-2xl p-3 flex flex-col items-center justify-center gap-1 min-w-[80px]"
-              style={{ background: "rgba(255,255,255,0.12)", backdropFilter: "blur(8px)" }}
-            >
-              <span className="text-2xl">🔥</span>
-              <p className="text-2xl font-black text-white leading-none">{stats.completed > 0 ? Math.min(stats.completed, 7) : 0}</p>
-              <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.6)" }}>
-                Day streak
-              </p>
-            </div>
           </div>
 
-          <PillTabs tabs={["All", "In Progress", "Completed"]} active={activeTab} onChange={setActiveTab} />
+          {/* Main hero area: giant progress % + mascot */}
+          <div className="px-5 pt-6 pb-0 relative overflow-hidden" style={{ minHeight: 200 }}>
+            {/* Giant number */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="flex items-baseline leading-none"
+            >
+              <span
+                className="font-black"
+                style={{
+                  fontSize: "clamp(100px, 28vw, 200px)",
+                  lineHeight: 0.85,
+                  color: "#27ff72",
+                  letterSpacing: "-0.04em",
+                  marginLeft: "-4px",
+                }}
+              >
+                {progress}
+              </span>
+              <span
+                className="font-black"
+                style={{
+                  fontSize: "clamp(36px, 9vw, 64px)",
+                  color: "rgba(255,255,255,0.7)",
+                  marginLeft: "-4px",
+                  marginBottom: "8px",
+                  alignSelf: "flex-end",
+                }}
+              >
+                %
+              </span>
+            </motion.div>
+
+            {/* Sub-label */}
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.25 }}
+              className="text-sm font-bold mt-2 max-w-xs leading-snug"
+              style={{ color: "rgba(255,255,255,0.45)" }}
+            >
+              {currentStage
+                ? <>Your <strong style={{ color: "rgba(255,255,255,0.8)" }}>Algebra Journey</strong>. Currently tackling <strong style={{ color: "rgba(255,255,255,0.8)" }}>{currentStage.title}</strong>.</>
+                : <>Your <strong style={{ color: "rgba(255,255,255,0.8)" }}>Algebra Journey</strong> is complete. Outstanding work!</>
+              }
+            </motion.p>
+
+            {/* Floating mascot — absolutely positioned bottom-right */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.15 }}
+              className="absolute bottom-0 right-0"
+              style={{ transform: "translateY(10px)" }}
+            >
+              <MascotGreen />
+            </motion.div>
+          </div>
+
+          {/* ── Stats row ── */}
+          <div className="px-5 pb-0 pt-6 grid grid-cols-3 gap-3">
+            {/* Lessons completed */}
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="rounded-xl p-3"
+              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
+            >
+              <p className="text-[9px] font-black uppercase tracking-[0.15em]" style={{ color: "rgba(255,255,255,0.3)" }}>
+                Lessons
+              </p>
+              <p className="text-2xl font-black text-white mt-0.5 leading-none">{stats.completed}</p>
+              <p className="text-[9px] font-bold mt-1" style={{ color: "rgba(255,255,255,0.3)" }}>/ {stats.total} total</p>
+            </motion.div>
+
+            {/* Streak */}
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.38 }}
+              className="rounded-xl p-3"
+              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
+            >
+              <p className="text-[9px] font-black uppercase tracking-[0.15em]" style={{ color: "rgba(255,255,255,0.3)" }}>
+                Streak
+              </p>
+              <div className="flex items-baseline gap-1 mt-0.5">
+                <p className="text-2xl font-black text-white leading-none">{streak}</p>
+                <span className="text-base" style={{ lineHeight: 1 }}>🔥</span>
+              </div>
+              <p className="text-[9px] font-bold mt-1" style={{ color: "rgba(255,255,255,0.3)" }}>days in a row</p>
+            </motion.div>
+
+            {/* Stage progress */}
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.46 }}
+              className="rounded-xl p-3"
+              style={{ background: "rgba(39,255,114,0.07)", border: "1px solid rgba(39,255,114,0.2)" }}
+            >
+              <p className="text-[9px] font-black uppercase tracking-[0.15em]" style={{ color: "rgba(39,255,114,0.5)" }}>
+                Stage
+              </p>
+              <p className="text-2xl font-black leading-none mt-0.5" style={{ color: "#27ff72" }}>
+                {currentStage ? currentStage.order_index : "✓"}
+              </p>
+              <p className="text-[9px] font-bold mt-1 truncate" style={{ color: "rgba(39,255,114,0.5)" }}>
+                {currentStage ? currentStage.title : "All done!"}
+              </p>
+            </motion.div>
+          </div>
+
+          {/* ── Tab bar ── */}
+          <div className="px-5 pt-5">
+            <LearnerTabs
+              tabs={["All", "In Progress", "Completed"]}
+              active={activeTab}
+              onChange={setActiveTab}
+            />
+          </div>
         </div>
       </div>
 
+      {/* ── CONTENT AREA ── */}
       <div className="max-w-screen-md mx-auto px-5 py-5 space-y-5">
-        
-        {/* Insight */}
-        <div className="rounded-2xl p-4 flex items-center justify-between gap-3 bg-card border border-border">
+
+        {/* Insight strip */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="rounded-xl p-4 flex items-center justify-between gap-3"
+          style={{ background: "#0f1117", border: "1px solid rgba(255,255,255,0.07)" }}
+        >
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1.5">
-              <span className="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded" style={{ background: "#2d7a45", color: "white" }}>INSIGHT</span>
-              <span className="text-[9px] font-bold text-muted-foreground">Daily challenge ›</span>
+              <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded"
+                style={{ background: "#27ff72", color: "#0a0a0a" }}>
+                INSIGHT
+              </span>
+              <span className="text-[9px] font-bold" style={{ color: "rgba(255,255,255,0.3)" }}>Daily challenge ›</span>
             </div>
-            <p className="text-xs font-bold text-foreground leading-snug">
-              You've completed <strong>{stats.completed} levels</strong>. Keep going!
+            <p className="text-xs font-bold leading-snug" style={{ color: "rgba(255,255,255,0.6)" }}>
+              You've completed <strong style={{ color: "#27ff72" }}>{stats.completed} levels</strong>. Keep going!
             </p>
           </div>
-          <WeekBarChart accent="#4ade80" />
-        </div>
+          <WeekBarChart accent="#27ff72" />
+        </motion.div>
 
         {loading ? (
           <div className="flex justify-center py-8">
-            <div className="animate-spin h-6 w-6 border-4 border-primary border-t-transparent rounded-full" />
+            <div className="animate-spin h-6 w-6 border-4 border-t-transparent rounded-full" style={{ borderColor: "#27ff72", borderTopColor: "transparent" }} />
           </div>
         ) : (
           <div className="space-y-6">
             {filteredStages.map((stage, stageIdx) => {
               const isCurrent = stage.id === currentStageId;
               const completedInStage = stage.levels.filter(l => l.status === "completed").length;
-              const stageProgress = Math.round((completedInStage / (stages.find(s => s.id === stage.id)?.levels.length || 4)) * 100);
+              const totalInStage = stages.find(s => s.id === stage.id)?.levels.length || 4;
+              const stageProgress = Math.round((completedInStage / totalInStage) * 100);
 
               return (
                 <motion.div
@@ -959,30 +1039,37 @@ const LearnerHome = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: stageIdx * 0.08 }}
                 >
-                  {/* Stage Header */}
-                  <div className={`rounded-2xl p-4 mb-3 border ${isCurrent ? "border-primary bg-primary/5" : "border-border bg-card"}`}>
+                  {/* Stage header */}
+                  <div
+                    className="rounded-xl p-4 mb-3"
+                    style={{
+                      background: "#0f1117",
+                      border: isCurrent ? "1px solid rgba(39,255,114,0.3)" : "1px solid rgba(255,255,255,0.07)",
+                    }}
+                  >
                     <div className="flex items-center gap-3">
-                     
                       <div className="flex-1">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                        <p className="text-[9px] font-black uppercase tracking-[0.15em]" style={{ color: "rgba(255,255,255,0.25)" }}>
                           Stage {stage.order_index}
                         </p>
-                        <p className="font-black text-sm text-foreground">{stage.title}</p>
+                        <p className="font-black text-sm" style={{ color: isCurrent ? "#27ff72" : "white" }}>
+                          {stage.title}
+                        </p>
                         {stage.description && (
-                          <p className="text-[11px] font-semibold text-muted-foreground mt-0.5 leading-snug">{stage.description}</p>
+                          <p className="text-[11px] font-semibold mt-0.5 leading-snug" style={{ color: "rgba(255,255,255,0.35)" }}>
+                            {stage.description}
+                          </p>
                         )}
                       </div>
                       <div className="text-right flex-shrink-0">
-                        <p className="text-lg font-black text-foreground">{stageProgress}%</p>
-                        <p className="text-[9px] font-bold text-muted-foreground">{completedInStage}/{stages.find(s => s.id === stage.id)?.levels.length || 4}</p>
+                        <p className="text-lg font-black" style={{ color: isCurrent ? "#27ff72" : "white" }}>{stageProgress}%</p>
+                        <p className="text-[9px] font-bold" style={{ color: "rgba(255,255,255,0.3)" }}>{completedInStage}/{totalInStage}</p>
                       </div>
                     </div>
-                    {/* Stage progress bar */}
-                    <div className="mt-2 w-full rounded-full h-1.5" style={{ background: "hsl(var(--muted))" }}>
-                      <div className="h-1.5 rounded-full transition-all" style={{
-                        width: `${stageProgress}%`,
-                        background: stageProgress === 100 ? "#4ade80" : isCurrent ? "#7c3aed" : "#60a5fa"
-                      }} />
+                    {/* Progress bar */}
+                    <div className="mt-2 w-full rounded-full h-[2px]" style={{ background: "rgba(255,255,255,0.08)" }}>
+                      <div className="h-[2px] rounded-full transition-all"
+                        style={{ width: `${stageProgress}%`, background: stageProgress === 100 ? "#27ff72" : isCurrent ? "#27ff72" : "rgba(255,255,255,0.3)" }} />
                     </div>
                   </div>
 
@@ -1008,8 +1095,8 @@ const LearnerHome = () => {
             })}
 
             {filteredStages.length === 0 && (
-              <div className="rounded-2xl border border-border bg-card p-8 text-center">
-                <p className="text-sm text-muted-foreground">No levels match this filter.</p>
+              <div className="rounded-xl p-8 text-center" style={{ background: "#0f1117", border: "1px solid rgba(255,255,255,0.07)" }}>
+                <p className="text-sm" style={{ color: "rgba(255,255,255,0.4)" }}>No levels match this filter.</p>
               </div>
             )}
           </div>
@@ -1022,6 +1109,7 @@ const LearnerHome = () => {
     </div>
   );
 };
+
 /* ─────────────────────────────────────────────────────────────────────────────
    ROOT
 ───────────────────────────────────────────────────────────────────────────── */
@@ -1037,10 +1125,7 @@ const Index = () => {
 
   const handleOnboardingComplete = useCallback(async () => {
     if (user) {
-      await supabase
-        .from("profiles")
-        .update({ onboarding_completed: true })
-        .eq("user_id", user.id);
+      await supabase.from("profiles").update({ onboarding_completed: true }).eq("user_id", user.id);
       await refreshProfile();
     }
     setShowOnboarding(false);
