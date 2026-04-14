@@ -1,9 +1,10 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Home, Users, MessageCircle, Bell, User, Plus } from "lucide-react";
+import { Home, MessageCircle, Bell, User, Plus } from "lucide-react";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNavVisibility } from "@/hooks/useNavVisibility";
 
 const BottomNav = () => {
   const location = useLocation();
@@ -11,6 +12,7 @@ const BottomNav = () => {
   const { user, userRole } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
   const [hasClass, setHasClass] = useState(false);
+  const navVisible = useNavVisibility(1500);
 
   useEffect(() => {
     if (!user) return;
@@ -76,7 +78,11 @@ const BottomNav = () => {
   })();
 
   return (
-    <div className="fixed bottom-6 left-0 right-0 z-50 flex items-center justify-center px-6 safe-area-bottom">
+    <div
+      className={`fixed bottom-6 left-0 right-0 z-50 flex items-center justify-center px-6 safe-area-bottom transition-transform duration-300 ease-in-out ${
+        navVisible ? "translate-y-0" : "translate-y-[120%]"
+      }`}
+    >
       {/* Floating pill nav */}
       <nav className="flex items-center gap-1 rounded-full bg-card/95 backdrop-blur-md border border-border px-3 py-2 shadow-xl">
         {tabs.map((tab) => {
