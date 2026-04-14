@@ -3,7 +3,7 @@ import BottomNav from "@/components/BottomNav";
 import { useAuth } from "@/contexts/AuthContext";
 
 const AppLayout = () => {
-  const { user, isGuest, loading } = useAuth();
+  const { user, profile, isGuest, loading } = useAuth();
 
   if (loading) {
     return (
@@ -17,10 +17,12 @@ const AppLayout = () => {
     return <Navigate to="/auth" replace />;
   }
 
+  const showingOnboarding = user && profile && !profile.onboarding_completed;
+
   return (
-    <div className="mx-auto min-h-screen max-w-lg bg-background pb-24">
+    <div className={`mx-auto min-h-screen max-w-lg bg-background ${showingOnboarding ? "" : "pb-24"}`}>
       <Outlet />
-      <BottomNav />
+      {!showingOnboarding && <BottomNav />}
     </div>
   );
 };

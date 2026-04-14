@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import Onboarding from "@/components/Onboarding";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
 import DailyChallenge from "@/components/DailyChallenge";
 import { Plus, MoreHorizontal, Lock, Check, Star, Users, ClipboardList, TrendingUp, BookOpen, Award, Target, AlertTriangle, Clock, CheckCircle2 } from "lucide-react";
-import HeartsDisplay from "@/components/HeartsDisplay";
+import HeartsHeaderPill from "@/components/HeartsHeaderPill";
+import JoinClassCard from "@/components/JoinClassCard";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGuestGate, GuestGateDialog } from "@/components/GuestGate";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,14 +16,15 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
-import Leaner from "@/assets/learner.png"
-import Teacher from "@/assets/teacher.png";
+
+import Learner from "@/assets/learner.png"
+import Teacher from "@/assets/teacher.png"
 /* ─────────────────────────────────────────────────────────────────────────────
    MASCOT: Blue bear with graduation cap (Teacher)
 ───────────────────────────────────────────────────────────────────────────── */
 const MascotBlue = () => (
   <div>
-    <img src={Teacher} alt="Teacher" width={100} />
+    <img src={Teacher} alt="Teacher Mascot" width={100}/>
   </div>
 );
 
@@ -29,8 +32,8 @@ const MascotBlue = () => (
    MASCOT: Green bear (Learner) - placeholder
 ───────────────────────────────────────────────────────────────────────────── */
 const MascotGreen = () => (
-    <div>
-    <img src={Leaner} alt="Learner" width={100} />
+  <div>
+    <img src={Learner} alt="Learner Mascot" width={100}/>
   </div>
 );
 
@@ -693,10 +696,20 @@ interface LevelWithStatus {
   stage_id: string;
   stage_title: string;
   stage_emoji: string;
+  stage_description: string | null;
   is_review: boolean;
   status: "completed" | "current" | "locked";
   score?: number;
   total_questions?: number;
+}
+
+interface StageWithLevels {
+  id: string;
+  title: string;
+  emoji: string;
+  description: string | null;
+  order_index: number;
+  levels: LevelWithStatus[];
 }
 
 const cardColors = [
@@ -704,18 +717,68 @@ const cardColors = [
   { bg: "#1565c0", fg: "#ffffff" },
   { bg: "#0d9488", fg: "#ffffff" },
   { bg: "#2d7a45", fg: "#ffffff" },
-  { bg: "#7c3aed", fg: "#ffffff" },
   { bg: "#d97706", fg: "#ffffff" },
-  { bg: "#1565c0", fg: "#ffffff" },
-  { bg: "#0d9488", fg: "#ffffff" },
+  { bg: "#6366f1", fg: "#ffffff" },
 ];
 
+const StageLevelItem = ({ level, onClick, colorIdx }: { level: LevelWithStatus; onClick: () => void; colorIdx: number }) => {
+  const color = cardColors[colorIdx % cardColors.length];
+  const isLocked = level.status === "locked";
+  const isCompleted = level.status === "completed";
+  const isCurrent = level.status === "current";
 
+  const scoreText = level.score != null && level.total_questions != null
+    ? `${level.score}/${level.total_questions}`
+    : null;
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={isLocked}
+      className={`w-full rounded-2xl p-4 text-left transition-all ${isLocked ? "opacity-60 cursor-not-allowed" : "cursor-pointer hover:scale-[1.02] active:scale-[0.98]"} ${isCurrent ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""}`}
+      style={{ background: color.bg }}
+    >
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg flex-shrink-0"
+          style={{ background: "rgba(0,0,0,0.22)", color: color.fg }}>
+          {isCompleted ? <Check className="h-5 w-5" /> :
+           isLocked ? (level.is_review ? <Star className="h-4 w-4" /> : <Lock className="h-4 w-4" />) :
+           getLevelIcon(level.title || `Level ${level.order_index}`, level.stage_emoji)}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-extrabold text-sm leading-tight truncate" style={{ color: color.fg }}>
+            {level.title || `Level ${level.order_index}`}
+          </p>
+          <p className="text-[10px] font-bold mt-0.5" style={{ color: `${color.fg}88` }}>
+            {level.is_review ? "Unit Review" : `Level ${level.order_index}`}
+          </p>
+        </div>
+        <div className="text-right flex-shrink-0">
+          {isCompleted && (
+            <span className="text-[10px] font-black" style={{ color: "#4ade80" }}>
+              {scoreText || "Done ✓"}
+            </span>
+          )}
+          {isCurrent && (
+            <span className="text-[10px] font-black" style={{ color: color.fg }}>
+              Start →
+            </span>
+          )}
+          {isLocked && (
+            <span className="text-[10px] font-black" style={{ color: `${color.fg}60` }}>
+              Locked
+            </span>
+          )}
+        </div>
+      </div>
+    </button>
+  );
+};
 
 const LearnerHome = () => {
   const { user, profile, isGuest } = useAuth();
   const navigate = useNavigate();
-  const [levels, setLevels] = useState<LevelWithStatus[]>([]);
+  const [stages, setStages] = useState<StageWithLevels[]>([]);
   const [stats, setStats] = useState({ completed: 0, total: 20 });
   const [activeTab, setActiveTab] = useState("All");
   const [loading, setLoading] = useState(true);
@@ -742,44 +805,51 @@ const LearnerHome = () => {
       }
 
       if (stagesRes.data && levelsRes.data) {
-        const stageMap = Object.fromEntries(stagesRes.data.map(s => [s.id, s]));
         let foundCurrent = false;
-        const allLevels: LevelWithStatus[] = levelsRes.data.map(l => {
-          const stage = stageMap[l.stage_id];
-          let status: "completed" | "current" | "locked" = "locked";
-          if (progressMap[l.id]?.completed) {
-            status = "completed";
-          } else if (!foundCurrent) {
-            status = "current";
-            foundCurrent = true;
-          }
-          return {
-            id: l.id,
-            title: l.title,
-            order_index: l.order_index,
-            stage_id: l.stage_id,
-            stage_title: stage?.title || "Stage",
-            stage_emoji: stage?.emoji || "📘",
-            is_review: l.is_review || false,
-            status,
-            score: progressMap[l.id]?.score,
-            total_questions: progressMap[l.id]?.total_questions,
-          };
+        const builtStages: StageWithLevels[] = stagesRes.data.map(s => {
+          const stageLevels = levelsRes.data!
+            .filter(l => l.stage_id === s.id)
+            .map(l => {
+              let status: "completed" | "current" | "locked" = "locked";
+              if (progressMap[l.id]?.completed) {
+                status = "completed";
+              } else if (!foundCurrent) {
+                status = "current";
+                foundCurrent = true;
+              }
+              return {
+                id: l.id,
+                title: l.title,
+                order_index: l.order_index,
+                stage_id: l.stage_id,
+                stage_title: s.title,
+                stage_emoji: s.emoji || "📘",
+                stage_description: s.description,
+                is_review: l.is_review || false,
+                status,
+                score: progressMap[l.id]?.score,
+                total_questions: progressMap[l.id]?.total_questions,
+              } as LevelWithStatus;
+            });
+          return { id: s.id, title: s.title, emoji: s.emoji || "📘", description: s.description, order_index: s.order_index, levels: stageLevels };
         });
 
         // For guests, unlock first 2 levels
         if (isGuest && !user) {
           let unlocked = 0;
-          allLevels.forEach(l => {
-            if (unlocked < 2 && l.status !== "completed") {
-              if (unlocked === 0) l.status = "current";
-              unlocked++;
-            }
+          builtStages.forEach(st => {
+            st.levels.forEach(l => {
+              if (unlocked < 2 && l.status !== "completed") {
+                if (unlocked === 0) l.status = "current";
+                unlocked++;
+              }
+            });
           });
         }
 
+        const allLevels = builtStages.flatMap(s => s.levels);
         const completedCount = allLevels.filter(l => l.status === "completed").length;
-        setLevels(allLevels);
+        setStages(builtStages);
         setStats({ completed: completedCount, total: allLevels.length });
       }
       setLoading(false);
@@ -796,15 +866,16 @@ const LearnerHome = () => {
   const displayName = profile?.display_name || profile?.first_name || (isGuest ? "Guest" : "Learner");
   const progress = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
 
-  const completedLevels = levels.filter(l => l.status === "completed");
-  const inProgressLevels = levels.filter(l => l.status === "current");
-  const lockedLevels = levels.filter(l => l.status === "locked");
+  // Filter stages based on tab
+  const filteredStages = stages.map(stage => {
+    let filteredLevels = stage.levels;
+    if (activeTab === "Completed") filteredLevels = stage.levels.filter(l => l.status === "completed");
+    else if (activeTab === "In Progress") filteredLevels = stage.levels.filter(l => l.status === "current");
+    return { ...stage, levels: filteredLevels };
+  }).filter(s => s.levels.length > 0);
 
-  const filteredSections = activeTab === "Completed"
-    ? { inProgress: [], completed: completedLevels, locked: [] }
-    : activeTab === "In Progress"
-    ? { inProgress: inProgressLevels, completed: [], locked: [] }
-    : { inProgress: inProgressLevels, completed: completedLevels, locked: lockedLevels };
+  // Determine current stage for highlighting
+  const currentStageId = stages.find(s => s.levels.some(l => l.status === "current"))?.id;
 
   return (
     <div className="min-h-screen pb-24 bg-background" style={{ fontFamily: "'Nunito',sans-serif" }}>
@@ -819,18 +890,29 @@ const LearnerHome = () => {
               <h1 className="text-2xl font-black text-white">Hi, {displayName}!</h1>
               <p className="text-sm font-semibold mt-0.5" style={{ color: "rgba(255,255,255,0.6)" }}>Your algebra journey</p>
             </div>
-            <HeartsDisplay />
+            <HeartsHeaderPill />
           </motion.div>
 
-          <div className="flex items-center gap-5 mb-6">
-            <div className="w-auto">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-auto flex-shrink-0">
               <MascotGreen />
             </div>
-            <div>
+            <div className="flex-1">
               <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.5)" }}>PROGRESS</p>
               <p className="text-5xl font-black text-white leading-none">{progress}%</p>
               <p className="text-xs font-bold mt-1" style={{ color: "rgba(255,255,255,0.55)" }}>
                 {stats.completed} of {stats.total} lessons complete
+              </p>
+            </div>
+            {/* Streak card */}
+            <div
+              className="flex-shrink-0 rounded-2xl p-3 flex flex-col items-center justify-center gap-1 min-w-[80px]"
+              style={{ background: "rgba(255,255,255,0.12)", backdropFilter: "blur(8px)" }}
+            >
+              <span className="text-2xl">🔥</span>
+              <p className="text-2xl font-black text-white leading-none">{stats.completed > 0 ? Math.min(stats.completed, 7) : 0}</p>
+              <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.6)" }}>
+                Day streak
               </p>
             </div>
           </div>
@@ -840,6 +922,8 @@ const LearnerHome = () => {
       </div>
 
       <div className="max-w-screen-md mx-auto px-5 py-5 space-y-5">
+        {/* Join Class prompt */}
+        {user && !isGuest && <JoinClassCard />}
         {/* Insight */}
         <div className="rounded-2xl p-4 flex items-center justify-between gap-3 bg-card border border-border">
           <div className="flex-1">
@@ -859,108 +943,108 @@ const LearnerHome = () => {
             <div className="animate-spin h-6 w-6 border-4 border-primary border-t-transparent rounded-full" />
           </div>
         ) : (
-          <>
-            {/* In Progress / Current */}
-            {filteredSections.inProgress.length > 0 && (
-              <div>
-                <div className="flex justify-between items-center mb-3">
-                  <p className="font-black text-foreground text-sm">Current Level</p>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  {filteredSections.inProgress.map((level, i) => {
-                    const color = cardColors[0];
-                    return (
-                      <div key={level.id} onClick={() => handleLevelClick(level)} className="cursor-pointer">
-                        <LessonCard
-                          icon={getLevelIcon(level.title || `Level ${level.order_index}`, level.stage_emoji)}
-                          title={level.title || `Level ${level.order_index}`}
-                          subtitle={`${level.stage_title} · Lvl ${level.order_index}`}
-                          xpLabel="STATUS"
-                          xpValue="Start →"
-                          bg={color.bg}
-                          fg={color.fg}
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+          <div className="space-y-6">
+            {filteredStages.map((stage, stageIdx) => {
+              const isCurrent = stage.id === currentStageId;
+              const completedInStage = stage.levels.filter(l => l.status === "completed").length;
+              const stageProgress = Math.round((completedInStage / (stages.find(s => s.id === stage.id)?.levels.length || 4)) * 100);
 
-            {/* Completed */}
-            {filteredSections.completed.length > 0 && (
-              <div>
-                <div className="flex justify-between items-center mb-3">
-                  <p className="font-black text-foreground text-sm">Completed</p>
-                  <span className="text-xs font-bold text-muted-foreground">{filteredSections.completed.length} done</span>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  {filteredSections.completed.map((level, i) => {
-                    const color = cardColors[(i + 1) % cardColors.length];
-                    const scoreText = level.score != null && level.total_questions != null
-                      ? `${level.score}/${level.total_questions}`
-                      : "Done ✓";
-                    return (
-                      <div key={level.id} onClick={() => handleLevelClick(level)} className="cursor-pointer">
-                        <LessonCard
-                          icon={getLevelIcon(level.title || `Level ${level.order_index}`, level.stage_emoji)}
-                          title={level.title || `Level ${level.order_index}`}
-                          subtitle={`${level.stage_title} · Lvl ${level.order_index}`}
-                          statusLabel="SCORE"
-                          statusValue={scoreText}
-                          bg={color.bg}
-                          fg={color.fg}
-                        />
+              return (
+                <motion.div
+                  key={stage.id}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: stageIdx * 0.08 }}
+                >
+                  {/* Stage Header */}
+                  <div className={`rounded-2xl p-4 mb-3 border ${isCurrent ? "border-primary bg-primary/5" : "border-border bg-card"}`}>
+                    <div className="flex items-center gap-3">
+                     
+                      <div className="flex-1">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                          Stage {stage.order_index}
+                        </p>
+                        <p className="font-black text-sm text-foreground">{stage.title}</p>
+                        {stage.description && (
+                          <p className="text-[11px] font-semibold text-muted-foreground mt-0.5 leading-snug">{stage.description}</p>
+                        )}
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-lg font-black text-foreground">{stageProgress}%</p>
+                        <p className="text-[9px] font-bold text-muted-foreground">{completedInStage}/{stages.find(s => s.id === stage.id)?.levels.length || 4}</p>
+                      </div>
+                    </div>
+                    {/* Stage progress bar */}
+                    <div className="mt-2 w-full rounded-full h-1.5" style={{ background: "hsl(var(--muted))" }}>
+                      <div className="h-1.5 rounded-full transition-all" style={{
+                        width: `${stageProgress}%`,
+                        background: stageProgress === 100 ? "#4ade80" : isCurrent ? "#7c3aed" : "#60a5fa"
+                      }} />
+                    </div>
+                  </div>
 
-            {/* Coming Up (Locked) */}
-            {filteredSections.locked.length > 0 && (
-              <div>
-                <p className="font-black text-foreground text-sm mb-3">Coming Up</p>
-                <div className="grid grid-cols-2 gap-3">
-                  {filteredSections.locked.slice(0, 4).map((level, i) => {
-                    const color = i % 2 === 0
-                      ? { bg: "#6366f1", fg: "#ffffff" }
-                      : { bg: "#0d9488", fg: "#ffffff" };
-                    return (
-                      <div key={level.id}>
-                        <LessonCard
-                          icon={getLevelIcon(level.title || `Level ${level.order_index}`, level.stage_emoji)}
-                          title={level.title || `Level ${level.order_index}`}
-                          subtitle={`${level.stage_title} · Lvl ${level.order_index}`}
-                          xpValue={level.is_review ? "Review" : "0 XP"}
-                          bg={color.bg}
-                          fg={color.fg}
-                          locked
+                  {/* Levels list */}
+                  <div className="space-y-2 pl-2">
+                    {stage.levels.map((level, levelIdx) => (
+                      <motion.div
+                        key={level.id}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: stageIdx * 0.08 + levelIdx * 0.04 }}
+                      >
+                        <StageLevelItem
+                          level={level}
+                          onClick={() => handleLevelClick(level)}
+                          colorIdx={stageIdx * 4 + levelIdx}
                         />
-                      </div>
-                    );
-                  })}
-                </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </motion.div>
+              );
+            })}
+
+            {filteredStages.length === 0 && (
+              <div className="rounded-2xl border border-border bg-card p-8 text-center">
+                <p className="text-sm text-muted-foreground">No levels match this filter.</p>
               </div>
             )}
-          </>
+          </div>
         )}
 
         {/* Daily Challenge */}
-        <DailyChallenge open={false} onOpenChange={() => {}}/>
+        <DailyChallenge />
       </div>
       <GuestGateDialog open={gateOpen} onOpenChange={setGateOpen} />
     </div>
   );
 };
-
 /* ─────────────────────────────────────────────────────────────────────────────
    ROOT
 ───────────────────────────────────────────────────────────────────────────── */
 const Index = () => {
-  const { userRole, loading } = useAuth();
+  const { user, profile, userRole, loading, refreshProfile } = useAuth();
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  useEffect(() => {
+    if (!loading && user && profile && !profile.onboarding_completed) {
+      setShowOnboarding(true);
+    }
+  }, [loading, user, profile]);
+
+  const handleOnboardingComplete = useCallback(async () => {
+    if (user) {
+      await supabase
+        .from("profiles")
+        .update({ onboarding_completed: true })
+        .eq("user_id", user.id);
+      await refreshProfile();
+    }
+    setShowOnboarding(false);
+  }, [user, refreshProfile]);
+
   if (loading) return null;
+  if (showOnboarding) return <Onboarding onComplete={handleOnboardingComplete} />;
   if (userRole === "teacher") return <TeacherDashboard />;
   return <LearnerHome />;
 };

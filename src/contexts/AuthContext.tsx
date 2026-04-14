@@ -64,30 +64,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
+    // Restore session first — this is the source of truth for initial load
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        await fetchProfile(session.user.id, session.user.user_metadata?.role ?? null);
+      }
+      setLoading(false);
+    });
+
+    // Listen for subsequent auth changes (sign-in, sign-out, token refresh)
+    // Do NOT await inside this callback — it can deadlock
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          setTimeout(() => fetchProfile(session.user.id, session.user.user_metadata?.role ?? null), 0);
+          fetchProfile(session.user.id, session.user.user_metadata?.role ?? null);
           setIsGuest(false);
           localStorage.removeItem("algebra-bridge-guest");
         } else {
           setProfile(null);
           setUserRole(null);
         }
-        setLoading(false);
       }
     );
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id, session.user.user_metadata?.role ?? null);
-      }
-      setLoading(false);
-    });
 
     return () => subscription.unsubscribe();
   }, []);

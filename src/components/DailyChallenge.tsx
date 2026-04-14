@@ -1,17 +1,11 @@
 import { useEffect, useState } from "react";
-import { Sparkles, ArrowRight, Check, X, Lightbulb, BoxSelectIcon } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Sparkles, ArrowRight, Check, X, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Card, CardContent } from "@/components/ui/card";
+import GuestGate from "@/components/GuestGate";
 
 interface Challenge {
   id: string;
@@ -20,12 +14,7 @@ interface Challenge {
   hint: string | null;
 }
 
-interface DailyChallengeProps {
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
-}
-
-const DailyChallenge = ({ open = true, onOpenChange }: DailyChallengeProps) => {
+const DailyChallenge = () => {
   const { user } = useAuth();
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [answer, setAnswer] = useState("");
@@ -82,150 +71,84 @@ const DailyChallenge = ({ open = true, onOpenChange }: DailyChallengeProps) => {
   };
 
   if (loading) return null;
+  if (!challenge) {
+    return (
+      <div className="rounded-2xl border bg-card p-4 text-center">
+        <p className="text-sm text-muted-foreground">No challenge today — check back tomorrow!</p>
+      </div>
+    );
+  }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <div className="flex items-center gap-2 mb-2">
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-              <BoxSelectIcon className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <DialogTitle>Daily Challenge</DialogTitle>
-              <DialogDescription className="text-xs">
-                Test your knowledge!
-              </DialogDescription>
-            </div>
-          </div>
-        </DialogHeader>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="rounded-2xl border bg-gradient-to-br from-warning/10 via-card to-warning/5 p-4 shadow-sm"
+    >
+      <div className="flex items-start gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-warning text-warning-foreground">
+          <Sparkles className="h-5 w-5" />
+        </div>
+        <div className="flex-1 space-y-2">
+          <p className="font-display text-sm font-bold">Daily Challenge</p>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            {challenge.question_text}
+          </p>
 
-        {!challenge ? (
-          <Card>
-            <CardContent className="py-8 text-center">
-              <p className="text-sm text-muted-foreground">
-                No challenge today — check back tomorrow!
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-4">
-            {/* Question */}
-            <Card>
-              <CardContent className="pt-6">
-                <p className="text-sm leading-relaxed">{challenge.question_text}</p>
-              </CardContent>
-            </Card>
-
-            {/* Result Display */}
-            {result && (
-              <Card className={result === "correct" ? "border-green-500" : "border-red-500"}>
-                <CardContent className="py-4">
-                  <div className="flex items-center gap-2">
-                    {result === "correct" ? (
-                      <>
-                        <div className="h-8 w-8 rounded-full bg-green-100 dark:bg-green-950 flex items-center justify-center">
-                          <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-green-600 dark:text-green-400">
-                            Correct! 🎉
-                          </p>
-                          <p className="text-xs text-muted-foreground">Great job!</p>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="h-8 w-8 rounded-full bg-red-100 dark:bg-red-950 flex items-center justify-center">
-                          <X className="h-4 w-4 text-red-600 dark:text-red-400" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-red-600 dark:text-red-400">
-                            Not quite
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            Answer: {challenge.correct_answer}
-                          </p>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Input Form */}
-            {!result && (
-              <div className="space-y-3">
-                {showInput ? (
-                  <>
-                    <Input
-                      value={answer}
-                      onChange={(e) => setAnswer(e.target.value)}
-                      placeholder="Type your answer..."
-                      onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-                      autoFocus
-                    />
-                    
-                    {showHint && challenge.hint && (
-                      <Card className="bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-900">
-                        <CardContent className="py-3">
-                          <div className="flex items-start gap-2">
-                            <Lightbulb className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5" />
-                            <p className="text-xs text-blue-700 dark:text-blue-300">
-                              {challenge.hint}
-                            </p>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
-
-                    <div className="flex gap-2">
-                      <Button 
-                        onClick={handleSubmit} 
-                        className="flex-1 gap-2"
-                        disabled={!answer.trim()}
-                      >
-                        Submit
-                        <ArrowRight className="h-4 w-4" />
-                      </Button>
-                      {challenge.hint && (
-                        <Button 
-                          variant="outline" 
-                          size="icon"
-                          onClick={() => setShowHint(!showHint)}
-                        >
-                          <Lightbulb className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </>
+          <AnimatePresence mode="wait">
+            {result ? (
+              <motion.div
+                key="result"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium ${
+                  result === "correct"
+                    ? "bg-success/10 text-success"
+                    : "bg-destructive/10 text-destructive"
+                }`}
+              >
+                {result === "correct" ? (
+                  <><Check className="h-4 w-4" /> Correct! 🎉</>
                 ) : (
-                  <Button 
-                    onClick={() => setShowInput(true)} 
-                    className="w-full gap-2"
-                  >
-                    Start Challenge
-                    <ArrowRight className="h-4 w-4" />
+                  <><X className="h-4 w-4" /> Not quite. Answer: {challenge.correct_answer}</>
+                )}
+              </motion.div>
+            ) : showInput ? (
+              <motion.div key="input" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2">
+                <Input
+                  value={answer}
+                  onChange={(e) => setAnswer(e.target.value)}
+                  placeholder="Your answer..."
+                  className="h-8 text-xs"
+                  onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+                />
+                <div className="flex gap-2">
+                  <Button size="sm" className="gap-1 text-xs flex-1" onClick={handleSubmit}>
+                    Submit <ArrowRight className="h-3 w-3" />
+                  </Button>
+                  {challenge.hint && (
+                    <Button size="sm" variant="ghost" className="text-xs" onClick={() => setShowHint(!showHint)}>
+                      <Lightbulb className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
+                {showHint && challenge.hint && (
+                  <p className="text-[11px] text-muted-foreground italic">💡 {challenge.hint}</p>
+                )}
+              </motion.div>
+            ) : (
+              <GuestGate>
+                {(gate) => (
+                  <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => { if (gate()) setShowInput(true); }}>
+                    Try it <ArrowRight className="h-3 w-3" />
                   </Button>
                 )}
-              </div>
+              </GuestGate>
             )}
-
-            {/* Close button after completion */}
-            {result && (
-              <Button 
-                variant="outline" 
-                onClick={() => onOpenChange?.(false)} 
-                className="w-full"
-              >
-                Close
-              </Button>
-            )}
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
+          </AnimatePresence>
+        </div>
+      </div>
+    </motion.div>
   );
 };
 
