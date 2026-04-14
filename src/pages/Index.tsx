@@ -877,6 +877,10 @@ const LearnerHome = () => {
   // Determine current stage for highlighting
   const currentStageId = stages.find(s => s.levels.some(l => l.status === "current"))?.id;
 
+  function setShowJoinClass(arg0: boolean): void {
+    throw new Error("Function not implemented.");
+  }
+
   return (
     <div className="min-h-screen pb-24 bg-background" style={{ fontFamily: "'Nunito',sans-serif" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap');`}</style>
@@ -922,8 +926,7 @@ const LearnerHome = () => {
       </div>
 
       <div className="max-w-screen-md mx-auto px-5 py-5 space-y-5">
-        {/* Join Class prompt */}
-        {user && !isGuest && <JoinClassCard />}
+        
         {/* Insight */}
         <div className="rounded-2xl p-4 flex items-center justify-between gap-3 bg-card border border-border">
           <div className="flex-1">
