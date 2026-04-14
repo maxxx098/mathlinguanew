@@ -1,9 +1,12 @@
+// AppLayout.tsx
 import { Outlet, Navigate } from "react-router-dom";
 import BottomNav from "@/components/BottomNav";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNavVisibility } from "@/hooks/useScrollDirection";
 
 const AppLayout = () => {
   const { user, profile, isGuest, loading } = useAuth();
+  const navVisible = useNavVisibility(1000); // hides after 1s of no scrolling
 
   if (loading) {
     return (
@@ -22,7 +25,15 @@ const AppLayout = () => {
   return (
     <div className={`mx-auto min-h-screen max-w-lg bg-background ${showingOnboarding ? "" : "pb-24"}`}>
       <Outlet />
-      {!showingOnboarding && <BottomNav />}
+      {!showingOnboarding && (
+        <div
+          className={`fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-lg transition-transform duration-300 ease-in-out ${
+            navVisible ? "translate-y-0" : "translate-y-full"
+          }`}
+        >
+          <BottomNav />
+        </div>
+      )}
     </div>
   );
 };
