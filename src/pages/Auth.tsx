@@ -14,6 +14,7 @@ import { lovable } from "@/integrations/lovable/index";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import Onboarding from "@/components/Onboarding";
+import Logo from "@/assets/logo.png"
 
 type AuthView = "welcome" | "login" | "register" | "role-select" | "onboarding" | "verify-email" | "forgot-password" | "reset-email-sent";
 type UserRole = "teacher" | "learner";
@@ -21,8 +22,8 @@ type UserRole = "teacher" | "learner";
 /* ── Logo ── */
 const MathlinguaLogo = ({ dark = false }: { dark?: boolean }) => (
   <div className="flex items-center gap-2">
-    <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${dark ? "bg-primary-foreground/20" : "bg-primary"}`}>
-      <BookOpen className="h-5 w-5 text-primary-foreground" />
+    <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${dark ? "bg-primary-foreground/20" : "bg-white"}`}>
+      <img src={Logo} alt="Mathlingua Logo" className="h-7 w-7 text-primary-foreground" />
     </div>
     <span className={`text-sm font-bold tracking-tight ${dark ? "text-primary-foreground" : ""}`}>Mathlingua</span>
   </div>
