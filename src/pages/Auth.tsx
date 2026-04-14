@@ -153,18 +153,18 @@ export default function Auth() {
       const needsVerification = !data.session;
       
       // Update profile with role and name information
-      const { error: roleError } = await supabase.from("profiles").update({
+      const { error: roleError } = await supabase.from("profiles").upsert({
+        user_id: data.user.id,
         first_name: firstName,
         last_name: lastName,
         display_name: `${firstName} ${lastName}`,
         role: selectedRole,
-      }).eq("user_id", data.user.id);
+      }, { onConflict: "user_id" });
 
-      if (roleError) {
-        toast.error("We couldn't save your account role. Please try again.");
-        setLoading(false);
-        return;
-      }
+        if (roleError) {
+          console.warn("Profile upsert failed (role in metadata as fallback):", roleError.message);
+          // Don't return — the role is already saved in user_metadata from signUp
+        }
 
       if (data.session) {
         // Profile already updated above
