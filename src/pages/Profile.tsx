@@ -1,17 +1,22 @@
-import { useEffect, useState } from "react";
-import { motion, cubicBezier } from "framer-motion";
-import { Flame, CheckSquare, Zap, Award, Settings, LogOut, ChevronRight } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { cubicBezier, motion } from "framer-motion";
+import { GraduationCap, Flame, Trophy, Star, Settings, LogOut, Award, Camera, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import WeeklyProgressChart from "@/components/WeeklyProgressChart";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { toast } from "sonner";
 
 const Profile = () => {
   const navigate = useNavigate();
-  const { user, profile, userRole, signOut, isGuest } = useAuth();
+  const { user, profile, userRole, signOut, isGuest, refreshProfile } = useAuth();
   const [stats, setStats] = useState({ completed: 0, challenges: 0, streak: 0 });
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -29,15 +34,35 @@ const Profile = () => {
     fetchStats();
   }, [user]);
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    if (!file.type.startsWith("image/")) { toast.error("Please select an image file"); return; }
+    if (file.size > 2 * 1024 * 1024) { toast.error("Image must be under 2MB"); return; }
+
+    setUploading(true);
+    const ext = file.name.split(".").pop();
+    const path = `${user.id}/avatar.${ext}`;
+
+    const { error: uploadError } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+    if (uploadError) { toast.error("Upload failed"); setUploading(false); return; }
+
+    const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(path);
+    const avatarUrl = `${publicUrl}?t=${Date.now()}`;
+
+    await supabase.from("profiles").update({ avatar_url: avatarUrl }).eq("user_id", user.id);
+    await refreshProfile();
+    toast.success("Avatar updated!");
+    setUploading(false);
+  };
+
   const handleLogout = async () => {
     await signOut();
     navigate("/auth");
   };
 
   const displayName = profile?.display_name || (isGuest ? "Guest Learner" : "Learner");
-  const roleLabel = userRole
-    ? userRole.charAt(0).toUpperCase() + userRole.slice(1)
-    : isGuest ? "Guest" : "Learner";
+  const roleLabel = userRole ? userRole.charAt(0).toUpperCase() + userRole.slice(1) : (isGuest ? "Guest" : "Learner");
   const progressPercent = Math.round((stats.completed / 20) * 100);
 
   const stagger = (i: number) => ({
@@ -62,10 +87,24 @@ const Profile = () => {
         className="px-5 pt-8 pb-6 border-b border-border/50"
       >
         <div className="flex items-center gap-4">
-          <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
-            <span className="text-lg font-semibold text-primary tracking-tight">
-              {initials}
-            </span>
+          <div className="flex items-center justify-center shrink-0 relative group-[]:">
+           {profile?.avatar_url ? (
+                <img src={profile.avatar_url} alt="Avatar" className="h-20 w-20 rounded-full object-cover border-2 border-primary/20" />
+              ) : (
+                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <GraduationCap className="h-10 w-10" />
+                </div>
+              )}
+              {!isGuest && (
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="absolute bottom-0 right-0 h-7 w-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md hover:scale-110 transition-transform"
+                >
+                  <Camera className="h-3.5 w-3.5" />
+                </button>
+              )}
+              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
           </div>
           <div>
             <h1 className="text-[22px] font-semibold tracking-tight leading-tight">
