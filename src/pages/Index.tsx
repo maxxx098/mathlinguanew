@@ -843,6 +843,13 @@ const LearnerHome = () => {
   const currentStage = stages.find(s => s.id === currentStageId);
   // Heart 
   const { lives } = useLives();
+  // Greeting based on time of day
+  const getGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
+  };
   return (
     <div className="min-h-screen pb-24 bg-background" style={{ fontFamily: "'Nunito',sans-serif" }}>
       <style>{`
@@ -869,7 +876,7 @@ const LearnerHome = () => {
                 Student Overview
               </p>
               <h1 className="text-2xl font-black mt-0.5 text-foreground">
-                Good morning, <span style={{ color: "#27ff72" }}>{displayName}</span>
+                {getGreeting()}, <span style={{ color: "#27ff72" }}>{displayName}</span>!
               </h1>
             </motion.div>
           </div>
