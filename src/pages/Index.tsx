@@ -2,9 +2,9 @@ import { useEffect, useState, useCallback } from "react";
 import Onboarding from "@/components/Onboarding";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-
+import { useLives } from "@/contexts/LivesContext";
 import DailyChallenge from "@/components/DailyChallenge";
-import { Plus, MoreHorizontal, Lock, Check, Star, Users, ClipboardList, TrendingUp, BookOpen, Award, Target, AlertTriangle, Clock, CheckCircle2 } from "lucide-react";
+import { Plus, MoreHorizontal, Lock, Check, Star, Users, ClipboardList, TrendingUp, BookOpen, Award, Target, AlertTriangle, Clock, CheckCircle2, Heart } from "lucide-react";
 import HeartsHeaderPill from "@/components/HeartsHeaderPill";
 import JoinClassCard from "@/components/JoinClassCard";
 import { useAuth } from "@/contexts/AuthContext";
@@ -841,35 +841,41 @@ const LearnerHome = () => {
 
   // Find current stage name for the header description
   const currentStage = stages.find(s => s.id === currentStageId);
-
+  // Heart 
+  const { lives } = useLives();
   return (
     <div className="min-h-screen pb-24 bg-background" style={{ fontFamily: "'Nunito',sans-serif" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap');
-        .neon-text { color: #27ff72; }
-        .neon-border { border-color: #27ff72; }
+        .learner-header { background: hsl(var(--card)); border-bottom: 1px solid hsl(var(--border)); }
+        .stat-card { background: hsl(var(--muted) / 0.5); border: 1px solid hsl(var(--border)); }
+        .stat-card-accent { background: color-mix(in srgb, #27ff72 8%, transparent); border: 1px solid color-mix(in srgb, #27ff72 25%, transparent); }
+        .stat-card-hearts { background: color-mix(in srgb, #f87171 8%, transparent); border: 1px solid color-mix(in srgb, #f87171 25%, transparent); }
+        .insight-card { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); }
+        .stage-card { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); }
+        .stage-card-active { background: hsl(var(--card)); border: 1px solid color-mix(in srgb, #27ff72 30%, transparent); }
+        .empty-card { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); }
+        .learner-tab-bar { border-bottom: 1px solid hsl(var(--border)); }
       `}</style>
 
-      {/* ── DARK EDITORIAL HEADER ── */}
-      <div style={{ background: "#0f1117", borderBottomLeftRadius: 28, borderBottomRightRadius: 28}} className="pb-10">
+      {/* ── EDITORIAL HEADER — adapts to light/dark via CSS vars ── */}
+      <div className="learner-header pb-10"style={{borderBottomLeftRadius: 28, borderBottomRightRadius: 28}}>
         <div className="max-w-screen-md mx-auto">
 
-          {/* Top bar */}
+          {/* Top bar — no HeartsHeaderPill here, hearts moved to stat card */}
           <div className="px-5 pt-12 pb-0 flex justify-between items-start">
             <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: "rgba(255,255,255,0.3)" }}>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
                 Student Overview
               </p>
-              <h1 className="text-2xl font-black mt-0.5" style={{ color: "white" }}>
+              <h1 className="text-2xl font-black mt-0.5 text-foreground">
                 Good morning, <span style={{ color: "#27ff72" }}>{displayName}</span>
               </h1>
             </motion.div>
-            <HeartsHeaderPill />
           </div>
 
-          {/* Main hero area: giant progress % + mascot */}
+          {/* Hero: giant % + floating mascot */}
           <div className="px-5 pt-6 pb-0 relative overflow-hidden" style={{ minHeight: 200 }}>
-            {/* Giant number */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -889,10 +895,9 @@ const LearnerHome = () => {
                 {progress}
               </span>
               <span
-                className="font-black"
+                className="font-black text-foreground/60"
                 style={{
                   fontSize: "clamp(36px, 9vw, 64px)",
-                  color: "rgba(255,255,255,0.7)",
                   marginLeft: "-4px",
                   marginBottom: "8px",
                   alignSelf: "flex-end",
@@ -902,21 +907,19 @@ const LearnerHome = () => {
               </span>
             </motion.div>
 
-            {/* Sub-label */}
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.25 }}
-              className="text-sm font-bold mt-2 max-w-xs leading-snug"
-              style={{ color: "rgba(255,255,255,0.45)" }}
+              className="text-sm font-bold mt-2 max-w-xs leading-snug text-muted-foreground"
             >
               {currentStage
-                ? <>Your <strong style={{ color: "rgba(255,255,255,0.8)" }}>Algebra Journey</strong>. Currently tackling <strong style={{ color: "rgba(255,255,255,0.8)" }}>{currentStage.title}</strong>.</>
-                : <>Your <strong style={{ color: "rgba(255,255,255,0.8)" }}>Algebra Journey</strong> is complete. Outstanding work!</>
+                ? <>Your <strong className="text-foreground">Algebra Journey</strong>. Currently tackling <strong className="text-foreground">{currentStage.title}</strong>.</>
+                : <>Your <strong className="text-foreground">Algebra Journey</strong> is complete. Outstanding work!</>
               }
             </motion.p>
 
-            {/* Floating mascot — absolutely positioned bottom-right */}
+            {/* Floating mascot */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -928,58 +931,48 @@ const LearnerHome = () => {
             </motion.div>
           </div>
 
-          {/* ── Stats row ── */}
-          <div className="px-5 pb-0 pt-6 grid grid-cols-3 gap-3">
-            {/* Lessons completed */}
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="rounded-xl p-3"
-              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
-            >
-              <p className="text-[9px] font-black uppercase tracking-[0.15em]" style={{ color: "rgba(255,255,255,0.3)" }}>
-                Lessons
-              </p>
-              <p className="text-2xl font-black text-white mt-0.5 leading-none">{stats.completed}</p>
-              <p className="text-[9px] font-bold mt-1" style={{ color: "rgba(255,255,255,0.3)" }}>/ {stats.total} total</p>
+          {/* ── 4 stat cards: Lessons · Streak · Stage · Hearts ── */}
+          <div className="px-5 pb-0 pt-6 grid grid-cols-4 gap-2">
+            {/* Lessons */}
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+              className="stat-card rounded-xl p-3">
+              <p className="text-[9px] font-black uppercase tracking-[0.12em] text-muted-foreground">Lessons</p>
+              <p className="text-2xl font-black text-foreground mt-0.5 leading-none">{stats.completed}</p>
+              <p className="text-[9px] font-bold mt-1 text-muted-foreground">/ {stats.total}</p>
             </motion.div>
 
             {/* Streak */}
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.38 }}
-              className="rounded-xl p-3"
-              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
-            >
-              <p className="text-[9px] font-black uppercase tracking-[0.15em]" style={{ color: "rgba(255,255,255,0.3)" }}>
-                Streak
-              </p>
-              <div className="flex items-baseline gap-1 mt-0.5">
-                <p className="text-2xl font-black text-white leading-none">{streak}</p>
-                <span className="text-base" style={{ lineHeight: 1 }}>🔥</span>
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.36 }}
+              className="stat-card rounded-xl p-3">
+              <p className="text-[9px] font-black uppercase tracking-[0.12em] text-muted-foreground">Streak</p>
+              <div className="flex items-baseline gap-0.5 mt-0.5">
+                <p className="text-2xl font-black text-foreground leading-none">{streak}</p>
+                <span className="text-sm" style={{ lineHeight: 1 }}>🔥</span>
               </div>
-              <p className="text-[9px] font-bold mt-1" style={{ color: "rgba(255,255,255,0.3)" }}>days in a row</p>
+              <p className="text-[9px] font-bold mt-1 text-muted-foreground">days</p>
             </motion.div>
 
-            {/* Stage progress */}
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.46 }}
-              className="rounded-xl p-3"
-              style={{ background: "rgba(39,255,114,0.07)", border: "1px solid rgba(39,255,114,0.2)" }}
-            >
-              <p className="text-[9px] font-black uppercase tracking-[0.15em]" style={{ color: "rgba(39,255,114,0.5)" }}>
-                Stage
-              </p>
+            {/* Stage — neon accent */}
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.42 }}
+              className="stat-card-accent rounded-xl p-3">
+              <p className="text-[9px] font-black uppercase tracking-[0.12em]" style={{ color: "color-mix(in srgb, #27ff72 60%, transparent)" }}>Stage</p>
               <p className="text-2xl font-black leading-none mt-0.5" style={{ color: "#27ff72" }}>
                 {currentStage ? currentStage.order_index : "✓"}
               </p>
-              <p className="text-[9px] font-bold mt-1 truncate" style={{ color: "rgba(39,255,114,0.5)" }}>
-                {currentStage ? currentStage.title : "All done!"}
+              <p className="text-[9px] font-bold mt-1 truncate" style={{ color: "color-mix(in srgb, #27ff72 55%, transparent)" }}>
+                {currentStage ? currentStage.title : "Done!"}
               </p>
+            </motion.div>
+
+            {/* Hearts — red accent, pulls from HeartsHeaderPill context */}
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.48 }}
+              className="stat-card-hearts rounded-xl p-3">
+              <p className="text-[9px] font-black uppercase tracking-[0.12em]" style={{ color: "color-mix(in srgb, #f87171 60%, transparent)" }}>Hearts</p>
+            <div className="flex items-baseline gap-0.5 mt-0.5">
+              <p className="text-2xl font-black text-foreground leading-none">{lives}</p>
+              <span className="text-sm" style={{ lineHeight: 1 }}><Heart color="red" size={16}/></span>
+            </div>
+              <p className="text-[9px] font-bold mt-1" style={{ color: "color-mix(in srgb, #f87171 55%, transparent)" }}>remaining</p>
             </motion.div>
           </div>
 
@@ -1002,8 +995,7 @@ const LearnerHome = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
-          className="rounded-xl p-4 flex items-center justify-between gap-3"
-          style={{ background: "#0f1117", border: "1px solid rgba(255,255,255,0.07)" }}
+          className="insight-card rounded-xl p-4 flex items-center justify-between gap-3"
         >
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1.5">
@@ -1011,9 +1003,9 @@ const LearnerHome = () => {
                 style={{ background: "#27ff72", color: "#0a0a0a" }}>
                 INSIGHT
               </span>
-              <span className="text-[9px] font-bold" style={{ color: "rgba(255,255,255,0.3)" }}>Daily challenge ›</span>
+              <span className="text-[9px] font-bold text-muted-foreground">Daily challenge ›</span>
             </div>
-            <p className="text-xs font-bold leading-snug" style={{ color: "rgba(255,255,255,0.6)" }}>
+            <p className="text-xs font-bold leading-snug text-muted-foreground">
               You've completed <strong style={{ color: "#27ff72" }}>{stats.completed} levels</strong>. Keep going!
             </p>
           </div>
@@ -1022,7 +1014,7 @@ const LearnerHome = () => {
 
         {loading ? (
           <div className="flex justify-center py-8">
-            <div className="animate-spin h-6 w-6 border-4 border-t-transparent rounded-full" style={{ borderColor: "#27ff72", borderTopColor: "transparent" }} />
+            <div className="animate-spin h-6 w-6 border-4 rounded-full border-primary border-t-transparent" />
           </div>
         ) : (
           <div className="space-y-6">
@@ -1040,36 +1032,35 @@ const LearnerHome = () => {
                   transition={{ delay: stageIdx * 0.08 }}
                 >
                   {/* Stage header */}
-                  <div
-                    className="rounded-xl p-4 mb-3"
-                    style={{
-                      background: "#0f1117",
-                      border: isCurrent ? "1px solid rgba(39,255,114,0.3)" : "1px solid rgba(255,255,255,0.07)",
-                    }}
-                  >
+                  <div className={`rounded-xl p-4 mb-3 ${isCurrent ? "stage-card-active" : "stage-card"}`}>
                     <div className="flex items-center gap-3">
                       <div className="flex-1">
-                        <p className="text-[9px] font-black uppercase tracking-[0.15em]" style={{ color: "rgba(255,255,255,0.25)" }}>
+                        <p className="text-[9px] font-black uppercase tracking-[0.15em] text-muted-foreground">
                           Stage {stage.order_index}
                         </p>
-                        <p className="font-black text-sm" style={{ color: isCurrent ? "#27ff72" : "white" }}>
+                        <p className={`font-black text-sm ${isCurrent ? "" : "text-foreground"}`} style={isCurrent ? { color: "#27ff72" } : {}}>
                           {stage.title}
                         </p>
                         {stage.description && (
-                          <p className="text-[11px] font-semibold mt-0.5 leading-snug" style={{ color: "rgba(255,255,255,0.35)" }}>
+                          <p className="text-[11px] font-semibold mt-0.5 leading-snug text-muted-foreground">
                             {stage.description}
                           </p>
                         )}
                       </div>
                       <div className="text-right flex-shrink-0">
-                        <p className="text-lg font-black" style={{ color: isCurrent ? "#27ff72" : "white" }}>{stageProgress}%</p>
-                        <p className="text-[9px] font-bold" style={{ color: "rgba(255,255,255,0.3)" }}>{completedInStage}/{totalInStage}</p>
+                        <p className={`text-lg font-black ${isCurrent ? "" : "text-foreground"}`} style={isCurrent ? { color: "#27ff72" } : {}}>
+                          {stageProgress}%
+                        </p>
+                        <p className="text-[9px] font-bold text-muted-foreground">{completedInStage}/{totalInStage}</p>
                       </div>
                     </div>
                     {/* Progress bar */}
-                    <div className="mt-2 w-full rounded-full h-[2px]" style={{ background: "rgba(255,255,255,0.08)" }}>
+                    <div className="mt-2 w-full rounded-full h-[2px] bg-border">
                       <div className="h-[2px] rounded-full transition-all"
-                        style={{ width: `${stageProgress}%`, background: stageProgress === 100 ? "#27ff72" : isCurrent ? "#27ff72" : "rgba(255,255,255,0.3)" }} />
+                        style={{
+                          width: `${stageProgress}%`,
+                          background: stageProgress === 100 ? "#27ff72" : isCurrent ? "#27ff72" : "hsl(var(--muted-foreground))"
+                        }} />
                     </div>
                   </div>
 
@@ -1095,8 +1086,8 @@ const LearnerHome = () => {
             })}
 
             {filteredStages.length === 0 && (
-              <div className="rounded-xl p-8 text-center" style={{ background: "#0f1117", border: "1px solid rgba(255,255,255,0.07)" }}>
-                <p className="text-sm" style={{ color: "rgba(255,255,255,0.4)" }}>No levels match this filter.</p>
+              <div className="empty-card rounded-xl p-8 text-center">
+                <p className="text-sm text-muted-foreground">No levels match this filter.</p>
               </div>
             )}
           </div>
@@ -1138,3 +1129,5 @@ const Index = () => {
 };
 
 export default Index;
+
+
