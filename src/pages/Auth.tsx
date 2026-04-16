@@ -15,7 +15,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import Onboarding from "@/components/Onboarding";
 import Logo from "@/assets/logo.png"
-
+import Teacher from "@/assets/teacher.png"
+import Learner from "@/assets/learner.png";
 type AuthView = "welcome" | "login" | "register" | "role-select" | "onboarding" | "verify-email" | "forgot-password" | "reset-email-sent";
 type UserRole = "teacher" | "learner";
 
@@ -468,8 +469,8 @@ export default function Auth() {
                     onClick={() => { setRole("learner"); setView("register"); }}
                     className="group flex flex-col items-center gap-3 rounded-2xl border-2 border-border p-6 transition-all hover:border-success hover:shadow-md active:scale-[0.98] bg-card shadow-sm"
                   >
-                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-success/10 text-success transition-transform group-hover:scale-110">
-                      <GraduationCap className="h-7 w-7" />
+                    <div className="flex h-14 w-14 items-center justify-center text-success transition-transform group-hover:scale-110">
+                      <img src={Learner} alt="Learner" width={100}/>
                     </div>
                     <div className="text-center">
                       <p className="font-bold text-sm">Learner</p>
@@ -480,8 +481,8 @@ export default function Auth() {
                     onClick={() => { setRole("teacher"); setView("register"); }}
                     className="group flex flex-col items-center gap-3 rounded-2xl border-2 border-border p-6 transition-all hover:border-primary hover:shadow-md active:scale-[0.98] bg-card shadow-sm"
                   >
-                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary transition-transform group-hover:scale-110">
-                      <Users className="h-7 w-7" />
+                    <div className="flex h-14 w-14 items-center justify-center  text-primary transition-transform group-hover:scale-110">
+                      <img src={Teacher} alt="Teacher" width={100}/>
                     </div>
                     <div className="text-center">
                       <p className="font-bold text-sm">Teacher</p>
