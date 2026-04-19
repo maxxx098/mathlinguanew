@@ -941,7 +941,7 @@ const LearnerHome = () => {
           <div className="absolute inset-0 pointer-events-none" style={{
             borderBottomLeftRadius: 28,
             borderBottomRightRadius: 28,
-            background: "linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.6) 100%)"
+            background: "linear-gradient(to bottom, transparent 1%, rgba(0,0,0,0.6) 100%)"
           }} />
       
         <div className="max-w-screen-md mx-auto">
@@ -1004,53 +1004,112 @@ const LearnerHome = () => {
             </motion.p>
           </div>
 
-          {/* ── 4 stat cards: Lessons · Streak · Stage · Hearts ── */}
-          <div className="relative px-5 pb-0 pt-6 grid grid-cols-4 gap-2">
+         {/* ── 3 stat cards: Lessons · Streak · Progress ── */}
+          <div className="relative px-5 pb-0 pt-6 grid grid-cols-3 gap-2.5">
+
             {/* Lessons */}
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-              className="stat-card rounded-xl p-3">
-             <p className="text-[9px] font-black uppercase tracking-[0.12em] text-white/50">Lessons</p>
-              <p className="text-2xl font-black text-white mt-0.5 leading-none">{stats.completed}</p>
-              <p className="text-[9px] font-bold mt-1 text-white/40">/ {stats.total}</p>
+            <motion.div
+              initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+              className="col-span-1 stat-card border border-white/[0.09] rounded-2xl p-4 flex flex-col gap-2.5"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-semibold tracking-[0.08em] uppercase text-white/30">Lessons</span>
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" className="opacity-20">
+                  <rect x="2" y="2" width="5" height="5" rx="1" fill="white"/>
+                  <rect x="9" y="2" width="5" height="5" rx="1" fill="white"/>
+                  <rect x="2" y="9" width="5" height="5" rx="1" fill="white"/>
+                  <rect x="9" y="9" width="5" height="5" rx="1" fill="white"/>
+                </svg>
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-[28px] font-semibold text-white leading-none tracking-tight">{stats.completed}</span>
+                <span className="text-[12px] text-white/25 leading-none">/{stats.total}</span>
+              </div>
+              <div className="h-[2px] rounded-full bg-white/10 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-white/50"
+                  style={{ width: `${Math.round((stats.completed / stats.total) * 100)}%` }}
+                />
+              </div>
+              <span className="text-[10px] text-white/25 font-medium">
+                {Math.round((stats.completed / stats.total) * 100)}% complete
+              </span>
             </motion.div>
 
             {/* Streak */}
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.36 }}
-              className="stat-card rounded-xl p-3">
-              <p className="text-[9px] font-black uppercase tracking-[0.12em] text-white/50">Streak</p>
-              <div className="flex items-baseline gap-0.5 mt-0.5">
-                <p className="text-2xl font-black text-white leading-none">{streak}</p>
-                <span className="text-sm" style={{ lineHeight: 1 }}>🔥</span>
+            <motion.div
+              initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.36 }}
+              className="col-span-1 stat-card border border-white/[0.09] rounded-2xl p-4 flex flex-col gap-2.5"
+              style={{ borderColor: "rgba(249,115,22,0.2)" }}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-semibold tracking-[0.08em] uppercase text-white/30">Streak</span>
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+                  <path d="M8 1C8 1 10 4 10 7C10 8.1 9.6 9.1 9 9.8C9.5 9 9.5 8 9 7.3C8.5 9 7 10 7 11.5C6.5 10.5 7 9.5 6.5 8.8C5.8 9.8 5.5 11 5.5 12C5.5 14.2 6.6 15 8 15C10.2 15 12 13.2 12 11C12 7.5 8 1 8 1Z" fill="#f97316" opacity="0.75"/>
+                </svg>
               </div>
-              <p className="text-[9px] font-bold mt-1 text-white/40">days</p>
+              <div className="flex items-baseline gap-1">
+                <span className="text-[28px] font-semibold text-white leading-none tracking-tight">{streak}</span>
+                <span className="text-[12px] text-white/25 leading-none">days</span>
+              </div>
+              <div className="flex gap-[3px]">
+                {Array.from({ length: Math.min(streak, 10) }).map((_, i) => (
+                  <div key={i} className="h-[2px] flex-1 rounded-full" style={{ background: "#f97316", opacity: 0.7 }} />
+                ))}
+                {Array.from({ length: Math.max(0, 10 - Math.min(streak, 10)) }).map((_, i) => (
+                  <div key={i} className="h-[2px] flex-1 rounded-full bg-white/10" />
+                ))}
+              </div>
+              <span className="text-[10px] text-white/25 font-medium">best: 12 days</span>
             </motion.div>
 
-            {/* Stage — neon accent */}
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.42 }}
-              className="stat-card-accent rounded-xl p-3">
-              <p className="text-[9px] font-black uppercase tracking-[0.12em]" style={{ color: "color-mix(in srgb, #27ff72 60%, transparent)" }}>Stage</p>
-              <p className="text-2xl font-black leading-none mt-0.5" style={{ color: "#27ff72" }}>
-                {currentStage ? currentStage.order_index : "✓"}
-              </p>
-              <p className="text-[9px] font-bold mt-1 truncate" style={{ color: "color-mix(in srgb, #27ff72 55%, transparent)" }}>
-                {currentStage ? currentStage.title : "Done!"}
-              </p>
+            {/* Progress */}
+            <motion.div
+              initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.42 }}
+              className="col-span-1 stat-card border border-white/[0.09] rounded-2xl p-4 flex flex-col gap-2.5"
+            >
+              <span className="text-[10px] font-semibold tracking-[0.08em] uppercase text-white/30">Progress</span>
+              <div className="flex flex-col gap-[10px] mt-1">
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[11px] text-white/30 font-medium">Overall</span>
+                    <span className="text-[11px] text-white/50 font-semibold">
+                      {Math.round((stats.completed / stats.total) * 100)}%
+                    </span>
+                  </div>
+                  <div className="h-[2px] bg-white/10 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-white/40"
+                      style={{ width: `${Math.round((stats.completed / stats.total) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[11px] text-white/30 font-medium">Stage</span>
+                    <span className="text-[11px] font-semibold" style={{ color: "#27ff72", opacity: 0.8 }}>
+                      {currentStage
+                        ? `${Math.round((stages.find(s => s.id === currentStage.id)?.levels.filter(l => l.status === "completed").length ?? 0) / (stages.find(s => s.id === currentStage.id)?.levels.length || 1) * 100)}%`
+                        : "100%"}
+                    </span>
+                  </div>
+                  <div className="h-[2px] bg-white/10 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full"
+                      style={{
+                        background: "#27ff72",
+                        opacity: 0.7,
+                        width: currentStage
+                          ? `${Math.round((stages.find(s => s.id === currentStage.id)?.levels.filter(l => l.status === "completed").length ?? 0) / (stages.find(s => s.id === currentStage.id)?.levels.length || 1) * 100)}%`
+                          : "100%"
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
             </motion.div>
 
-            {/* Hearts — red accent, pulls from HeartsHeaderPill context */}
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.48 }}
-              className="stat-card-hearts rounded-xl p-3">
-              <p className="text-[9px] font-black uppercase tracking-[0.12em]" style={{ color: "color-mix(in srgb, #f87171 60%, transparent)" }}>Hearts</p>
-            <div className="flex items-baseline gap-0.5 mt-0.5">
-              <p className="text-2xl font-black text-white leading-none">{lives}</p>
-              <span className="text-sm" style={{ lineHeight: 1 }}><Heart color="red" size={16}/></span>
-            </div>
-             <p className="text-[9px] font-bold mt-1" style={{ color: "color-mix(in srgb, #f87171 55%, transparent)" }}>
-              {showTimer && nextRefillSeconds !== null ? formatTime(nextRefillSeconds) : "remaining"}
-            </p>
-            </motion.div>
           </div>
-
           {/* ── Tab bar ── */}
           <div className="px-5 pt-5">
             <LearnerTabs
