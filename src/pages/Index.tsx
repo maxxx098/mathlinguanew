@@ -844,7 +844,14 @@ const LearnerHome = () => {
   // Find current stage name for the header description
   const currentStage = stages.find(s => s.id === currentStageId);
   // Heart 
-  const { lives, nextRefillSeconds } = useLives();
+ const { lives, nextRefillSeconds } = useLives();
+ const showTimer = lives < 5 && nextRefillSeconds !== null;
+
+  const formatTime = (seconds: number): string => {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+};
   // Greeting based on time of day
   const getGreeting = () => {
   const hour = new Date().getHours();
@@ -852,10 +859,6 @@ const LearnerHome = () => {
   if (hour < 18) return "Good afternoon";
   return "Good evening";
   };
-  function formatTime(nextRefillSeconds: number): import("react").ReactNode {
-    throw new Error("Function not implemented.");
-  }
-
   return (
     <div className="min-h-screen pb-24 bg-background" style={{ fontFamily: "'Nunito',sans-serif" }}>
       <style>{`
@@ -987,14 +990,9 @@ const LearnerHome = () => {
               <p className="text-2xl font-black text-foreground leading-none">{lives}</p>
               <span className="text-sm" style={{ lineHeight: 1 }}><Heart color="red" size={16}/></span>
             </div>
-              <p className="text-[9px] font-bold mt-1" style={{ color: "color-mix(in srgb, #f87171 55%, transparent)" }}>remaining</p>
-              <div>
-                 {nextRefillSeconds !== null && (
-                  <p className="text-xs font-medium text-muted-foreground">
-                    Next heart in {formatTime(nextRefillSeconds)}
-                  </p>
-                )}
-              </div>
+             <p className="text-[9px] font-bold mt-1" style={{ color: "color-mix(in srgb, #f87171 55%, transparent)" }}>
+              {showTimer && nextRefillSeconds !== null ? formatTime(nextRefillSeconds) : "remaining"}
+            </p>
             </motion.div>
           </div>
 
