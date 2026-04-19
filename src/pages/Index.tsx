@@ -534,7 +534,7 @@ const TeacherDashboard = () => {
           <BookOpen className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
           <p className="text-sm font-bold text-foreground mb-1">No classes yet</p>
           <p className="text-xs text-muted-foreground mb-3">Create your first class to get started</p>
-          <button onClick={() => navigate("/class")} className="px-4 py-2 rounded-full text-xs font-black text-white" style={{ background: "#1565c0" }}>Create Class</button>
+          <button onClick={() => navigate("/class")} className="px-4 py-2 rounded-full text-xs font-black text-white" style={{ background: "#27ff72", color: "#0a0a0a" }}>Create Class</button>
         </div>
       ) : (
         <div className="space-y-3">
@@ -606,7 +606,7 @@ const TeacherDashboard = () => {
           <ClipboardList className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
           <p className="text-sm font-bold text-foreground mb-1">No assignments yet</p>
           <p className="text-xs text-muted-foreground mb-3">Create assignments from your class page</p>
-          <button onClick={() => navigate("/class")} className="px-4 py-2 rounded-full text-xs font-black text-white" style={{ background: "#1565c0" }}>Go to Classes</button>
+          <button onClick={() => navigate("/class")} className="px-4 py-2 rounded-full text-xs font-black text-white" style={{ background: "#27ff72", color: "#0a0a0a" }}>Go to Classes</button>
         </div>
       ) : (
         <div className="space-y-3">
