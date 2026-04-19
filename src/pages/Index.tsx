@@ -21,6 +21,7 @@ import Learner from "@/assets/learner.png"
 import Teacher from "@/assets/teacher.png"
 
 import BG from "@/assets/bg.png"
+import teacherBG from "@/assets/teacherBG.png"
 
 /* ─────────────────────────────────────────────────────────────────────────────
    MASCOT: Blue bear with graduation cap (Teacher)
@@ -376,16 +377,16 @@ const TeacherDashboard = () => {
       <div className="rounded-2xl p-4 flex items-center justify-between gap-3 bg-card border border-border">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1.5">
-            <span className="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded" style={{ background: "#1565c0", color: "white" }}>INSIGHT</span>
-            <span className="text-[9px] font-bold text-muted-foreground">Class report ›</span>
+        <span className="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded" style={{ background: "#27ff72", color: "#0a0a0a" }}>INSIGHT</span>
+        <span className="text-[9px] font-bold text-muted-foreground">Class report ›</span>
           </div>
           <p className="text-xs font-bold text-foreground leading-snug">
-            {stats.studentCount > 0
-              ? `Class avg is ${overallAvg}% this week. ${needsAttention.length} student${needsAttention.length !== 1 ? "s" : ""} need attention.`
-              : "Create a class and invite students to get started!"}
+        {stats.studentCount > 0
+          ? `Class avg is ${overallAvg}% this week. ${needsAttention.length} student${needsAttention.length !== 1 ? "s" : ""} need attention.`
+          : "Create a class and invite students to get started!"}
           </p>
         </div>
-        <WeekBarChart accent="#60a5fa" />
+        <WeekBarChart accent="#27ff72" />
       </div>
 
       <div>
@@ -643,30 +644,84 @@ const TeacherDashboard = () => {
   return (
     <div className="min-h-screen pb-24 bg-background" style={{ fontFamily: "'Nunito',sans-serif" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap');`}</style>
-      <div style={{ background: "#1565c0", borderBottomLeftRadius: 28, borderBottomRightRadius: 28 }}>
-        <div className="max-w-screen-md mx-auto px-5 pt-12 pb-7">
-          <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-            className="flex justify-between items-start mb-5">
-            <div>
-              <h1 className="text-2xl font-black text-white">Hi, {displayName}!</h1>
-              <p className="text-sm font-semibold mt-0.5" style={{ color: "rgba(255,255,255,0.6)" }}>Your classroom overview</p>
+       <div className="relative pb-10" style={{ borderBottomLeftRadius: 28, borderBottomRightRadius: 28, backgroundImage: `url(${teacherBG})`, backgroundSize: "cover", backgroundPosition: "center" }}>
+          
+          {/* Upper dark gradient */}
+          <div className="absolute inset-0 pointer-events-none" style={{
+            background: "linear-gradient(to top, transparent 40%, rgba(0,0,0,0.6) 100%)"
+          }} />
+
+          {/* Bottom dark gradient */}
+          <div className="absolute inset-0 pointer-events-none" style={{
+            borderBottomLeftRadius: 28,
+            borderBottomRightRadius: 28,
+            background: "linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.6) 100%)"
+          }} />
+
+          <div className="max-w-screen-md mx-auto">
+            <div className="relative px-5 pt-12 pb-0 flex justify-between items-start">
+              <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50">Classroom Overview</p>
+                <h1 className="text-2xl font-black mt-0.5 text-white">
+                  Hi, <span style={{ color: "#27ff72" }}>{displayName}</span>!
+                </h1>
+              </motion.div>
+              <button className="flex items-center gap-1 px-3 py-2 rounded-full text-xs font-black"
+                style={{ background: "rgba(255,255,255,0.18)", color: "white" }} onClick={() => navigate("/class")}>
+                {stats.classCount > 0 ? <><BookOpen className="h-3.5 w-3.5" /> My class</> : <><Plus className="h-3.5 w-3.5" /> New class</>}
+              </button>
             </div>
-            <button className="flex items-center gap-1 px-3 py-2 rounded-full text-xs font-black"
-              style={{ background: "rgba(255,255,255,0.18)", color: "white" }} onClick={() => navigate("/class")}>
-              {stats.classCount > 0 ? <><BookOpen className="h-3.5 w-3.5" /> My class</> : <><Plus className="h-3.5 w-3.5" /> New class</>}
-            </button>
-          </motion.div>
-          <div className="flex items-center gap-5 mb-6">
-            <MascotBlue />
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.5)" }}>STUDENTS</p>
-              <p className="text-5xl font-black text-white leading-none">{stats.studentCount}</p>
-              <p className="text-xs font-bold mt-1" style={{ color: "rgba(255,255,255,0.55)" }}>Across {stats.classCount} active {stats.classCount === 1 ? "class" : "classes"}</p>
+
+            {/* Hero: giant student count */}
+            <div className="px-5 pt-6 pb-0 relative overflow-hidden" style={{ minHeight: 200 }}>
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
+                className="flex items-baseline leading-none">
+                <span className="font-black" style={{
+                  fontSize: "clamp(100px, 28vw, 200px)",
+                  lineHeight: 0.85,
+                  color: "#27ff72",
+                  letterSpacing: "-0.04em",
+                  marginLeft: "-4px",
+                }}>
+                  {stats.studentCount}
+                </span>
+              </motion.div>
+              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }}
+                className="text-sm font-bold mt-2 max-w-xs leading-snug" style={{ color: "rgba(255,255,255,0.6)" }}>
+                Students across <strong className="text-white">{stats.classCount} active {stats.classCount === 1 ? "class" : "classes"}</strong>.
+              </motion.p>
+            </div>
+
+            {/* Stat cards */}
+            <div className="relative px-5 pb-0 pt-6 grid grid-cols-3 gap-2">
+              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+                className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)" }}>
+                <p className="text-[9px] font-black uppercase tracking-[0.12em] text-white/50">Classes</p>
+                <p className="text-2xl font-black text-white mt-0.5 leading-none">{stats.classCount}</p>
+                <p className="text-[9px] font-bold mt-1 text-white/40">active</p>
+              </motion.div>
+
+                <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.36 }}
+                className="rounded-xl p-3" style={{ background: "rgba(39,255,114,0.15)", border: "1px solid rgba(39,255,114,0.3)" }}>
+                <p className="text-[9px] font-black uppercase tracking-[0.12em]" style={{ color: "rgba(39,255,114,0.7)" }}>Avg Score</p>
+                <p className="text-2xl font-black leading-none mt-0.5" style={{ color: "#27ff72" }}>{overallAvg}%</p>
+                <p className="text-[9px] font-bold mt-1" style={{ color: "rgba(39,255,114,0.5)" }}>class avg</p>
+                </motion.div>
+
+              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.42 }}
+                className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)" }}>
+                <p className="text-[9px] font-black uppercase tracking-[0.12em] text-white/50">Tasks</p>
+                <p className="text-2xl font-black text-white mt-0.5 leading-none">{stats.assignmentCount}</p>
+                <p className="text-[9px] font-bold mt-1 text-white/40">assignments</p>
+              </motion.div>
+            </div>
+
+            {/* Tab bar */}
+            <div className="px-5 pt-5 relative">
+              <PillTabs tabs={["Overview", "Classes", "Assignments"]} active={activeTab} onChange={setActiveTab} />
             </div>
           </div>
-          <PillTabs tabs={["Overview", "Classes", "Assignments"]} active={activeTab} onChange={setActiveTab} />
         </div>
-      </div>
       <div className="max-w-screen-md mx-auto px-5 py-5">
         {activeTab === "Overview" && renderOverview()}
         {activeTab === "Classes" && renderClasses()}
