@@ -72,9 +72,9 @@ const BottomNav = () => {
 
   const fabLabel = (() => {
     if (userRole === "teacher") {
-      return hasClass ? "My Class" : "New";
+      return hasClass ? "My Class" : <><Plus className="h-4 w-4" />New</>;
     }
-    return hasClass ? "My Class" : "Join";
+    return hasClass ? "My Class" : <><Plus className="h-4 w-4" />Join</>;
   })();
 
   return (
@@ -127,11 +127,10 @@ const BottomNav = () => {
       {/* FAB button */}
       <button
         onClick={handleFabClick}
-        className="ml-3 flex h-12 shrink-0 items-center justify-center rounded-full bg-primary shadow-lg active:scale-95 transition-transform gap-1.5 px-4"
+        className="ml-3 h-12 shrink-0 rounded-full bg-primary shadow-lg active:scale-95 transition-transform gap-1.5 px-4 py-7 text-sm text-primary-foreground flex items-center justify-center"
         aria-label={fabLabel}
       >
-        <Plus className="h-5 w-5 text-primary-foreground" strokeWidth={2.5} />
-        <span className="text-primary-foreground text-xs font-semibold whitespace-nowrap">
+        <span className="text-primary-foreground text-xs font-semibold whitespace-nowrap items-center justify-center lex flex gap-1">
           {fabLabel}
         </span>
       </button>
