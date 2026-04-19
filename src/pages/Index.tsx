@@ -20,6 +20,8 @@ import { Separator } from "@/components/ui/separator";
 import Learner from "@/assets/learner.png"
 import Teacher from "@/assets/teacher.png"
 
+import BG from "@/assets/bg.png"
+
 /* ─────────────────────────────────────────────────────────────────────────────
    MASCOT: Blue bear with graduation cap (Teacher)
 ───────────────────────────────────────────────────────────────────────────── */
@@ -866,11 +868,24 @@ const LearnerHome = () => {
       `}</style>
 
       {/* ── EDITORIAL HEADER — adapts to light/dark via CSS vars ── */}
-      <div className="learner-header pb-10"style={{borderBottomLeftRadius: 28, borderBottomRightRadius: 28}}>
+      <div className="relative pb-10"style={{borderBottomLeftRadius: 28, borderBottomRightRadius: 28,  backgroundImage: `url(${BG})`, backgroundSize: "cover", backgroundPosition: "center" }}>
+      
+        {/* Upper-only dark gradient mask */}
+          <div className="absolute inset-0 pointer-events-none" style={{
+            background: "linear-gradient(to top, transparent 40%, rgba(0,0,0,0.6) 100%)"
+          }} />
+
+        {/* Bottom-only dark gradient mask */}
+          <div className="absolute inset-0 pointer-events-none" style={{
+            borderBottomLeftRadius: 28,
+            borderBottomRightRadius: 28,
+            background: "linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.6) 100%)"
+          }} />
+      
         <div className="max-w-screen-md mx-auto">
 
           {/* Top bar — no HeartsHeaderPill here, hearts moved to stat card */}
-          <div className="px-5 pt-12 pb-0 flex justify-between items-start">
+          <div className="relative px-5 pt-12 pb-0 flex justify-between items-start">
             <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}>
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
                 Student Overview
@@ -925,21 +940,10 @@ const LearnerHome = () => {
                 : <>Your <strong className="text-foreground">Algebra Journey</strong> is complete. Outstanding work!</>
               }
             </motion.p>
-
-            {/* Floating mascot */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.15 }}
-              className="absolute bottom-0 right-0"
-              style={{ transform: "translateY(10px)" }}
-            >
-              <MascotGreen />
-            </motion.div>
           </div>
 
           {/* ── 4 stat cards: Lessons · Streak · Stage · Hearts ── */}
-          <div className="px-5 pb-0 pt-6 grid grid-cols-4 gap-2">
+          <div className="relative px-5 pb-0 pt-6 grid grid-cols-4 gap-2">
             {/* Lessons */}
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
               className="stat-card rounded-xl p-3">
