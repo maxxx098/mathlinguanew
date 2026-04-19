@@ -369,7 +369,7 @@ const TeacherDashboard = () => {
     return `${daysLeft}d left`;
   };
   const timeAgo = (d: string) => { const m = Math.floor((Date.now() - new Date(d).getTime()) / 60000); if (m < 60) return `${m}m`; const h = Math.floor(m / 60); if (h < 24) return `${h}h`; return `${Math.floor(h / 24)}d`; };
-  const classCardColors = ["#1565c0", "#0d9488", "#7c3aed", "#d97706", "#2d7a45", "#dc2626"];
+  const classCardColors = ["#27ff72", "#0d9488", "#7c3aed", "#d97706", "#2d7a45", "#dc2626"];
   const overallAvg = classes.length > 0 ? Math.round(classes.reduce((s, c) => s + c.avgScore, 0) / classes.length) : 0;
 
   const renderOverview = () => (
@@ -919,9 +919,9 @@ const LearnerHome = () => {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap');
         .learner-header { background: hsl(var(--card)); border-bottom: 1px solid hsl(var(--border)); }
-        .stat-card { background: hsl(var(--muted) / 0.5); border: 1px solid hsl(var(--border)); }
-        .stat-card-accent { background: color-mix(in srgb, #27ff72 8%, transparent); border: 1px solid color-mix(in srgb, #27ff72 25%, transparent); }
-        .stat-card-hearts { background: color-mix(in srgb, #f87171 8%, transparent); border: 1px solid color-mix(in srgb, #f87171 25%, transparent); }
+       .stat-card { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); }
+        .stat-card-accent { background: rgba(39,255,114,0.12); border: 1px solid rgba(39,255,114,0.25); }
+        .stat-card-hearts { background: rgba(248,113,113,0.12); border: 1px solid rgba(248,113,113,0.25); }
         .insight-card { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); }
         .stage-card { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); }
         .stage-card-active { background: hsl(var(--card)); border: 1px solid color-mix(in srgb, #27ff72 30%, transparent); }
@@ -949,10 +949,10 @@ const LearnerHome = () => {
           {/* Top bar — no HeartsHeaderPill here, hearts moved to stat card */}
           <div className="relative px-5 pt-12 pb-0 flex justify-between items-start">
             <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50">
                 Student Overview
               </p>
-              <h1 className="text-2xl font-black mt-0.5 text-foreground">
+              <h1 className="text-2xl font-black mt-0.5 text-white">
                 {getGreeting()}, <span style={{ color: "#27ff72" }}>{displayName}</span>!
               </h1>
             </motion.div>
@@ -967,11 +967,11 @@ const LearnerHome = () => {
               className="flex items-baseline leading-none"
             >
               <span
-                className="font-black"
+                className="font-black text-white/60"
                 style={{
                   fontSize: "clamp(100px, 28vw, 200px)",
                   lineHeight: 0.85,
-                  color: "#27ff72",
+                  
                   letterSpacing: "-0.04em",
                   marginLeft: "-4px",
                 }}
@@ -979,7 +979,7 @@ const LearnerHome = () => {
                 {progress}
               </span>
               <span
-                className="font-black text-foreground/60"
+                className="font-black text-white/60"
                 style={{
                   fontSize: "clamp(36px, 9vw, 64px)",
                   marginLeft: "-4px",
@@ -998,9 +998,9 @@ const LearnerHome = () => {
               className="text-sm font-bold mt-2 max-w-xs leading-snug text-muted-foreground"
             >
               {currentStage
-                ? <>Your <strong className="text-foreground">Algebra Journey</strong>. Currently tackling <strong className="text-foreground">{currentStage.title}</strong>.</>
-                : <>Your <strong className="text-foreground">Algebra Journey</strong> is complete. Outstanding work!</>
-              }
+                  ? <>Your <strong className="text-white">Algebra Journey</strong>. Currently tackling <strong className="text-white">{currentStage.title}</strong>.</>
+                  : <>Your <strong className="text-white">Algebra Journey</strong> is complete. Outstanding work!</>
+                }
             </motion.p>
           </div>
 
@@ -1009,20 +1009,20 @@ const LearnerHome = () => {
             {/* Lessons */}
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
               className="stat-card rounded-xl p-3">
-              <p className="text-[9px] font-black uppercase tracking-[0.12em] text-muted-foreground">Lessons</p>
-              <p className="text-2xl font-black text-foreground mt-0.5 leading-none">{stats.completed}</p>
-              <p className="text-[9px] font-bold mt-1 text-muted-foreground">/ {stats.total}</p>
+             <p className="text-[9px] font-black uppercase tracking-[0.12em] text-white/50">Lessons</p>
+              <p className="text-2xl font-black text-white mt-0.5 leading-none">{stats.completed}</p>
+              <p className="text-[9px] font-bold mt-1 text-white/40">/ {stats.total}</p>
             </motion.div>
 
             {/* Streak */}
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.36 }}
               className="stat-card rounded-xl p-3">
-              <p className="text-[9px] font-black uppercase tracking-[0.12em] text-muted-foreground">Streak</p>
+              <p className="text-[9px] font-black uppercase tracking-[0.12em] text-white/50">Streak</p>
               <div className="flex items-baseline gap-0.5 mt-0.5">
-                <p className="text-2xl font-black text-foreground leading-none">{streak}</p>
+                <p className="text-2xl font-black text-white leading-none">{streak}</p>
                 <span className="text-sm" style={{ lineHeight: 1 }}>🔥</span>
               </div>
-              <p className="text-[9px] font-bold mt-1 text-muted-foreground">days</p>
+              <p className="text-[9px] font-bold mt-1 text-white/40">days</p>
             </motion.div>
 
             {/* Stage — neon accent */}
@@ -1042,7 +1042,7 @@ const LearnerHome = () => {
               className="stat-card-hearts rounded-xl p-3">
               <p className="text-[9px] font-black uppercase tracking-[0.12em]" style={{ color: "color-mix(in srgb, #f87171 60%, transparent)" }}>Hearts</p>
             <div className="flex items-baseline gap-0.5 mt-0.5">
-              <p className="text-2xl font-black text-foreground leading-none">{lives}</p>
+              <p className="text-2xl font-black text-white leading-none">{lives}</p>
               <span className="text-sm" style={{ lineHeight: 1 }}><Heart color="red" size={16}/></span>
             </div>
              <p className="text-[9px] font-bold mt-1" style={{ color: "color-mix(in srgb, #f87171 55%, transparent)" }}>

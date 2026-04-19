@@ -14,9 +14,11 @@ import { lovable } from "@/integrations/lovable/index";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import Onboarding from "@/components/Onboarding";
+
 import Logo from "@/assets/logo.png"
 import Teacher from "@/assets/teacher.png"
 import Learner from "@/assets/learner.png";
+
 type AuthView = "welcome" | "login" | "register" | "role-select" | "onboarding" | "verify-email" | "forgot-password" | "reset-email-sent";
 type UserRole = "teacher" | "learner";
 
@@ -29,7 +31,6 @@ const MathlinguaLogo = ({ dark = false }: { dark?: boolean }) => (
     <span className={`text-sm font-bold tracking-tight ${dark ? "text-primary-foreground" : ""}`}>Mathlingua</span>
   </div>
 );
-
 /* ── Dark panel watermark ── */
 const LargeWatermark = () => (
   <div className="absolute inset-0 flex items-center justify-center opacity-[0.08] pointer-events-none select-none">
@@ -61,6 +62,27 @@ export default function Auth() {
   const [resetEmail, setResetEmail] = useState("");
   const [stats, setStats] = useState({ users: 0, lessons: 0 });
 
+  const normalizeRole = (value: unknown): UserRole | null => {
+    if (value === "teacher" || value === "learner") return value;
+    return null;
+  };
+
+  const persistUserRole = async (userId: string, selectedRole: UserRole | null) => {
+    if (!selectedRole) return true;
+
+    const { error } = await supabase.rpc("set_user_role", {
+      _user_id: userId,
+      _role: selectedRole,
+    });
+
+    if (error) {
+      console.warn("Failed to save user role", error);
+      return false;
+    }
+
+    return true;
+  };
+
   // Handle OTP expired / access_denied errors from email verification links
   useEffect(() => {
     const hash = window.location.hash;
@@ -69,7 +91,6 @@ export default function Auth() {
       const desc = params.get("error_description") || "Email link is invalid or has expired";
       toast.error(desc);
       setView("login");
-      // Clean up the URL hash
       window.history.replaceState(null, "", window.location.pathname);
     }
   }, []);
@@ -116,8 +137,15 @@ export default function Auth() {
     const form = e.target as HTMLFormElement;
     const email = (form.elements.namedItem("email") as HTMLInputElement).value;
     const password = (form.elements.namedItem("password") as HTMLInputElement).value;
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) { toast.error(error.message); setLoading(false); return; }
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      toast.error(error.message);
+      setLoading(false);
+      return;
+    }
+
+    await persistUserRole(data.user.id, normalizeRole(data.user.user_metadata?.role));
     toast.success("Welcome back!");
     navigate("/");
     setLoading(false);
@@ -140,9 +168,12 @@ export default function Auth() {
       },
     });
 
-    if (error) { toast.error(error.message); setLoading(false); return; }
+    if (error) {
+      toast.error(error.message);
+      setLoading(false);
+      return;
+    }
 
-    // Detect duplicate email (Supabase returns a fake user with empty identities)
     if (data.user && (!data.user.identities || data.user.identities.length === 0)) {
       toast.error("An account with this email already exists. Please log in instead.");
       setLoading(false);
@@ -152,23 +183,14 @@ export default function Auth() {
     if (data.user) {
       const selectedRole = role || "learner";
       const needsVerification = !data.session;
-      
-      // Update profile with role and name information
-      const { error: roleError } = await supabase.from("profiles").upsert({
-        user_id: data.user.id,
-        first_name: firstName,
-        last_name: lastName,
-        display_name: `${firstName} ${lastName}`,
-        role: selectedRole,
-      }, { onConflict: "user_id" });
-
-        if (roleError) {
-          console.warn("Profile upsert failed (role in metadata as fallback):", roleError.message);
-          // Don't return — the role is already saved in user_metadata from signUp
-        }
+      const roleSaved = await persistUserRole(data.user.id, selectedRole);
 
       if (data.session) {
-        // Profile already updated above
+        await supabase.from("profiles").update({
+          first_name: firstName,
+          last_name: lastName,
+          display_name: `${firstName} ${lastName}`,
+        }).eq("user_id", data.user.id);
       }
 
       if (classCode.trim() && selectedRole === "learner" && data.session) {
@@ -177,9 +199,18 @@ export default function Auth() {
         if (classData) await supabase.from("class_members").insert({ class_id: classData.id, user_id: data.user.id });
       }
 
-      if (needsVerification) { setRegisteredEmail(email); setView("verify-email"); toast.success("Check your email!"); }
-      else setView("onboarding");
+      if (needsVerification) {
+        setRegisteredEmail(email);
+        setView("verify-email");
+        toast.success(roleSaved ? "Check your email!" : "Check your email! We'll finish setting up your role when you sign in.");
+      } else {
+        if (!roleSaved) {
+          toast.error("Your account was created, but your role is still syncing. Please sign in again if needed.");
+        }
+        setView("onboarding");
+      }
     }
+
     setLoading(false);
   };
 

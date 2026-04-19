@@ -1,7 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
 
 interface AuthContextType {
   session: Session | null;
@@ -21,6 +20,11 @@ const AuthContext = createContext<AuthContextType>({
   signOut: async () => {}, setIsGuest: () => {}, refreshProfile: async () => {},
 });
 
+const normalizeRole = (role: unknown): "teacher" | "learner" | null => {
+  if (role === "teacher" || role === "learner") return role;
+  return null;
+};
+
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -31,17 +35,47 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isGuest, setIsGuest] = useState(() => localStorage.getItem("algebra-bridge-guest") === "true");
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = async (userId: string, fallbackRole?: string | null) => {
+  const ensurePersistedRole = async (authUser: User, fallbackRole?: string | null) => {
+    const desiredRole = normalizeRole(fallbackRole ?? authUser.user_metadata?.role);
+    if (!desiredRole) return;
+
+    const { data: existingRoles, error: existingRolesError } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", authUser.id);
+
+    if (existingRolesError) {
+      console.error("Failed to read existing user roles", existingRolesError);
+      return;
+    }
+
+    const hasDesiredRole = (existingRoles ?? []).some((entry) => entry.role === desiredRole);
+    if (hasDesiredRole) return;
+
+    const { error: persistRoleError } = await supabase.rpc("set_user_role", {
+      _user_id: authUser.id,
+      _role: desiredRole,
+    });
+
+    if (persistRoleError) {
+      console.error("Failed to persist missing user role", persistRoleError);
+    }
+  };
+
+  const fetchProfile = async (authUser: User, fallbackRole?: string | null) => {
+    const normalizedFallbackRole = normalizeRole(fallbackRole ?? authUser.user_metadata?.role);
+    await ensurePersistedRole(authUser, normalizedFallbackRole);
+
     const [{ data: profileData }, { data: roleRows, error: roleError }] = await Promise.all([
       supabase
         .from("profiles")
         .select("*")
-        .eq("user_id", userId)
+        .eq("user_id", authUser.id)
         .maybeSingle(),
       supabase
         .from("user_roles")
         .select("role")
-        .eq("user_id", userId),
+        .eq("user_id", authUser.id),
     ]);
 
     if (roleError) {
@@ -53,35 +87,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       ? "teacher"
       : roles.includes("learner")
         ? "learner"
-        : fallbackRole ?? null;
+        : normalizedFallbackRole;
 
     setProfile(profileData ?? null);
-    setUserRole(resolvedRole);
+    setUserRole(resolvedRole ?? null);
   };
 
   const refreshProfile = async () => {
-    if (user) await fetchProfile(user.id, user.user_metadata?.role ?? null);
+    if (user) await fetchProfile(user, user.user_metadata?.role ?? null);
   };
 
   useEffect(() => {
-    // Restore session first — this is the source of truth for initial load
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        await fetchProfile(session.user.id, session.user.user_metadata?.role ?? null);
+        await fetchProfile(session.user, session.user.user_metadata?.role ?? null);
       }
       setLoading(false);
     });
 
-    // Listen for subsequent auth changes (sign-in, sign-out, token refresh)
-    // Do NOT await inside this callback — it can deadlock
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          fetchProfile(session.user.id, session.user.user_metadata?.role ?? null);
+          fetchProfile(session.user, session.user.user_metadata?.role ?? null);
           setIsGuest(false);
           localStorage.removeItem("algebra-bridge-guest");
         } else {
