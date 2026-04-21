@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Onboarding from "@/components/Onboarding";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -802,7 +802,70 @@ const LearnerHome = () => {
   const streak = stats.completed > 0 ? Math.min(stats.completed, 7) : 0;
   const { lives, nextRefillSeconds } = useLives();
   const showTimer = lives < 5 && nextRefillSeconds !== null;
-
+  function HeartbeatSVG() {
+    const polyRef = useRef<SVGPolylineElement>(null);
+    const offRef = useRef(0);
+    const rafRef = useRef<number>(0);
+  
+    // one full ECG cycle spanning 28px wide, baseline at y=18
+    const basePts: [number, number][] = [
+      [0, 18],
+      [4, 18],
+      [5, 15],
+      [6, 24],
+      [8, 4],   // sharp spike up
+      [10, 22],
+      [12, 18],
+      [28, 18],
+    ];
+  
+    useEffect(() => {
+      function draw() {
+        if (!polyRef.current) return;
+        offRef.current = (offRef.current + 0.5) % 28;
+        const off = offRef.current;
+  
+        // duplicate the pattern so the scroll is seamless
+        const doubled: [number, number][] = [
+          ...basePts,
+          ...basePts.map(([x, y]) => [x + 28, y] as [number, number]),
+        ];
+  
+        const shifted = doubled
+          .map(([x, y]) => [x - off, y] as [number, number])
+          .filter(([x]) => x >= -2 && x <= 30);
+  
+        polyRef.current.setAttribute(
+          "points",
+          shifted.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" ")
+        );
+  
+        rafRef.current = requestAnimationFrame(draw);
+      }
+  
+      rafRef.current = requestAnimationFrame(draw);
+      return () => cancelAnimationFrame(rafRef.current);
+    }, []);
+  
+    return (
+      <svg
+        width="28"
+        height="32"
+        viewBox="0 0 28 32"
+        fill="none"
+        style={{ overflow: "visible" }}
+      >
+        <polyline
+          ref={polyRef}
+          stroke="rgba(248,113,113,0.75)"
+          strokeWidth="1.5"
+          fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
+  }
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
@@ -868,44 +931,180 @@ const LearnerHome = () => {
             </motion.p>
           </div>
 
-          {/* 4 stat chips */}
-          <div className="relative px-5 pb-0 pt-5 grid grid-cols-4 gap-2">
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.30 }} className="stat-card rounded-xl p-3">
-              <p className="text-[9px] font-black uppercase tracking-[0.12em] text-white/50">Done</p>
-              <p className="text-2xl font-black text-white mt-0.5 leading-none">{stats.completed}</p>
-              <p className="text-[9px] font-bold mt-1 text-white/40">/ {stats.total}</p>
-            </motion.div>
+        {/* 4 stat chips */}
+        <div className="relative px-5 pb-0 pt-5 grid grid-cols-4 gap-2">
 
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.36 }} className="stat-card rounded-xl p-3">
-              <p className="text-[9px] font-black uppercase tracking-[0.12em] text-white/50">Streak</p>
-              <div className="flex items-baseline gap-0.5 mt-0.5">
+          {/* DONE */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.30 }}
+            className="stat-card rounded-xl p-3 overflow-hidden"
+          >
+            <p className="text-[9px] font-black uppercase tracking-[0.12em] text-white/50">Done</p>
+            <div className="flex items-start justify-between mt-0.5">
+              <div>
+                <p className="text-2xl font-black text-white leading-none">{stats.completed}</p>
+                <p className="text-[9px] font-bold mt-1 text-white/40">/ {stats.total}</p>
+              </div>
+              <svg width="28" height="32" viewBox="0 0 28 32" fill="none">
+                <path
+                  d="M2,10 Q5,4 8,10 Q11,16 14,10 Q17,4 20,10 Q23,16 26,10"
+                  stroke="rgba(255,255,255,0.3)"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  fill="none"
+                />
+                <path
+                  d="M2,18 Q5,12 8,18 Q11,24 14,18 Q17,12 20,18 Q23,24 26,18"
+                  stroke="rgba(255,255,255,0.15)"
+                  strokeWidth="1.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  fill="none"
+                />
+                <path
+                  d="M2,26 Q5,20 8,26 Q11,32 14,26 Q17,20 20,26 Q23,32 26,26"
+                  stroke="rgba(255,255,255,0.06)"
+                  strokeWidth="1"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  fill="none"
+                />
+              </svg>
+            </div>
+          </motion.div>
+
+          {/* STREAK */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.36 }}
+            className="stat-card rounded-xl p-3 overflow-hidden"
+          >
+            <p className="text-[9px] font-black uppercase tracking-[0.12em] text-white/50">Streak</p>
+            <div className="flex items-start justify-between mt-0.5">
+              <div>
                 <p className="text-2xl font-black text-white leading-none">{streak}</p>
-                <span className="text-sm" style={{ lineHeight: 1 }}>🔥</span>
+                <p className="text-[9px] font-bold mt-1 text-white/40">days</p>
               </div>
-              <p className="text-[9px] font-bold mt-1 text-white/40">days</p>
-            </motion.div>
+              <svg width="28" height="32" viewBox="0 0 28 32" fill="none">
+                <path
+                  d="M2,10 Q5,4 8,10 Q11,16 14,10 Q17,4 20,10 Q23,16 26,10"
+                  stroke="rgba(255,159,67,0.45)"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  fill="none"
+                />
+                <path
+                  d="M2,18 Q5,12 8,18 Q11,24 14,18 Q17,12 20,18 Q23,24 26,18"
+                  stroke="rgba(255,159,67,0.22)"
+                  strokeWidth="1.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  fill="none"
+                />
+                <path
+                  d="M2,26 Q5,20 8,26 Q11,32 14,26 Q17,20 20,26 Q23,32 26,26"
+                  stroke="rgba(255,159,67,0.08)"
+                  strokeWidth="1"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  fill="none"
+                />
+              </svg>
+            </div>
+          </motion.div>
 
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.42 }} className="stat-card-accent rounded-xl p-3">
-              <p className="text-[9px] font-black uppercase tracking-[0.12em]" style={{ color: "rgba(39,255,114,0.65)" }}>Stage</p>
-              <p className="text-2xl font-black leading-none mt-0.5" style={{ color: "#27ff72" }}>
-                {currentStageIndex ?? "✓"}
-              </p>
-              <p className="text-[9px] font-bold mt-1 truncate" style={{ color: "rgba(39,255,114,0.55)" }}>
-                {currentStageName ?? "Done!"}
-              </p>
-            </motion.div>
+          {/* STAGE */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.42 }}
+            className="stat-card-accent rounded-xl p-3 overflow-hidden"
+          >
+            <p
+              className="text-[9px] font-black uppercase tracking-[0.12em]"
+              style={{ color: "rgba(39,255,114,0.65)" }}
+            >
+              Stage
+            </p>
+            <div className="flex items-start justify-between mt-0.5">
+              <div>
+                <p
+                  className="text-2xl font-black leading-none"
+                  style={{ color: "#27ff72" }}
+                >
+                  {currentStageIndex ?? "✓"}
+                </p>
+                <p
+                  className="text-[9px] font-bold mt-1 truncate"
+                  style={{ color: "rgba(39,255,114,0.55)" }}
+                >
+                  {currentStageName ?? "Done!"}
+                </p>
+              </div>
+              <svg width="28" height="32" viewBox="0 0 28 32" fill="none">
+                <path
+                  d="M2,10 Q5,4 8,10 Q11,16 14,10 Q17,4 20,10 Q23,16 26,10"
+                  stroke="rgba(39,255,114,0.4)"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  fill="none"
+                />
+                <path
+                  d="M2,18 Q5,12 8,18 Q11,24 14,18 Q17,12 20,18 Q23,24 26,18"
+                  stroke="rgba(39,255,114,0.18)"
+                  strokeWidth="1.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  fill="none"
+                />
+                <path
+                  d="M2,26 Q5,20 8,26 Q11,32 14,26 Q17,20 20,26 Q23,32 26,26"
+                  stroke="rgba(39,255,114,0.07)"
+                  strokeWidth="1"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  fill="none"
+                />
+              </svg>
+            </div>
+          </motion.div>
 
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.48 }} className="stat-card-hearts rounded-xl p-3">
-              <p className="text-[9px] font-black uppercase tracking-[0.12em]" style={{ color: "rgba(248,113,113,0.65)" }}>Hearts</p>
-              <div className="flex items-baseline gap-0.5 mt-0.5">
+          {/* HEARTS — animated ECG beat line */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.48 }}
+            className="stat-card-hearts rounded-xl p-3 overflow-hidden"
+          >
+            <p
+              className="text-[9px] font-black uppercase tracking-[0.12em]"
+              style={{ color: "rgba(248,113,113,0.65)" }}
+            >
+              Hearts
+            </p>
+            <div className="flex items-start justify-between mt-0.5">
+              <div>
                 <p className="text-2xl font-black text-white leading-none">{lives}</p>
-                <Heart color="red" size={13} style={{ marginBottom: 2 }} />
+                <p
+                  className="text-[9px] font-bold mt-1"
+                  style={{ color: "rgba(248,113,113,0.55)" }}
+                >
+                  {showTimer && nextRefillSeconds !== null
+                    ? formatTime(nextRefillSeconds)
+                    : "remaining"}
+                </p>
               </div>
-              <p className="text-[9px] font-bold mt-1" style={{ color: "rgba(248,113,113,0.55)" }}>
-                {showTimer && nextRefillSeconds !== null ? formatTime(nextRefillSeconds) : "remaining"}
-              </p>
-            </motion.div>
-          </div>
+              <HeartbeatSVG />
+            </div>
+          </motion.div>
+
+        </div>
 
           {/* tab bar */}
           <div className="px-5 pt-5">
