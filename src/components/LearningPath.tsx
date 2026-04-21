@@ -313,15 +313,15 @@ const LearningPath = () => {
           display: none;
           position: fixed;
           inset: 0;
-          background: rgba(0,0,0,.45);
+          
           z-index: 50;
-          align-items: flex-end;
+          align-items: center;
         }
         .lp-overlay.lp-open { display: flex; }
 
         .lp-sheet {
           background: hsl(var(--card));
-          border-radius: calc(var(--radius, 0.75rem) * 2) calc(var(--radius, 0.75rem) * 2) 0 0;
+          border-radius: calc(var(--radius, 0.75rem) * 2) ;
           width: 100%;
           padding: 0 1.25rem 2rem;
           max-height: 86vh;
@@ -602,7 +602,7 @@ const LearningPath = () => {
 
       {/* ── Stage detail sheet ──────────────────────────────── */}
       <div
-        className={`lp-overlay${selectedStage ? " lp-open" : ""}`}
+        className={`lp-overlay relative max-w-screen-sm rounded-md px-24 flex mx-auto${selectedStage ? " lp-open" : ""}`}
         onClick={(e) => e.target === e.currentTarget && setSelectedStage(null)}
       >
         <div className="lp-sheet">
