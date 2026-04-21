@@ -1,68 +1,52 @@
 import { useEffect, useState, useCallback } from "react";
 import Onboarding from "@/components/Onboarding";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useLives } from "@/contexts/LivesContext";
 import DailyChallenge from "@/components/DailyChallenge";
-import { Plus, MoreHorizontal, Lock, Check, Star, Users, ClipboardList, TrendingUp, BookOpen, Award, Target, AlertTriangle, Clock, CheckCircle2, Heart } from "lucide-react";
-import HeartsHeaderPill from "@/components/HeartsHeaderPill";
-import JoinClassCard from "@/components/JoinClassCard";
+import {
+  Plus, MoreHorizontal, Lock, ClipboardList, BookOpen,
+  AlertTriangle, Clock, CheckCircle2, Heart,
+} from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGuestGate, GuestGateDialog } from "@/components/GuestGate";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
-
-import Learner from "@/assets/learner.png"
-import Teacher from "@/assets/teacher.png"
-
-import BG from "@/assets/bg.png"
-import teacherBG from "@/assets/teacherBG.png"
+import LearningPath from "@/components/LearningPath";
+import Teacher from "@/assets/teacher.png";
+import BG from "@/assets/bg.png";
+import teacherBG from "@/assets/teacherBG.png";
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   MASCOT: Blue bear with graduation cap (Teacher)
-───────────────────────────────────────────────────────────────────────────── */
-const MascotBlue = () => (
-  <div>
-    <img src={Teacher} alt="Teacher Mascot" width={100}/>
-  </div>
-);
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   MASCOT: Green bear (Learner) - floating animation
-───────────────────────────────────────────────────────────────────────────── */
-const MascotGreen = () => (
-  <motion.div
-    animate={{ y: [0, -8, 0] }}
-    transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
-  >
-    <img src={Learner} alt="Learner Mascot" width={110} />
-  </motion.div>
-);
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   Week bar chart with day labels  F S S M T W T
+   Week bar chart
 ───────────────────────────────────────────────────────────────────────────── */
 const WeekBarChart = ({ accent = "#4ade80" }: { accent?: string }) => {
-  const days = ["F","S","S","M","T","W","T"];
+  const days = ["F", "S", "S", "M", "T", "W", "T"];
   const vals = [3, 2, 4, 5, 4, 7, 9];
   const max = Math.max(...vals);
   return (
     <div className="flex flex-col items-center gap-1 flex-shrink-0">
       <div className="flex items-end gap-[3px] h-8">
         {vals.map((v, i) => (
-          <div key={i} className="w-[5px] rounded-sm flex-shrink-0"
-            style={{ height: `${Math.round((v / max) * 100)}%`, background: i === vals.length - 1 ? accent : `${accent}55` }} />
+          <div
+            key={i}
+            className="w-[5px] rounded-sm flex-shrink-0"
+            style={{
+              height: `${Math.round((v / max) * 100)}%`,
+              background: i === vals.length - 1 ? accent : `${accent}55`,
+            }}
+          />
         ))}
       </div>
       <div className="flex gap-[3px]">
         {days.map((d, i) => (
-          <span key={i} className="text-[7px] font-extrabold w-[5px] text-center text-muted-foreground"
-            style={{ color: i === days.length - 1 ? accent : undefined }}>
+          <span
+            key={i}
+            className="text-[7px] font-extrabold w-[5px] text-center text-muted-foreground"
+            style={{ color: i === days.length - 1 ? accent : undefined }}
+          >
             {d}
           </span>
         ))}
@@ -72,11 +56,19 @@ const WeekBarChart = ({ accent = "#4ade80" }: { accent?: string }) => {
 };
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   Learner Tab Switcher — editorial style, underline indicator
+   Learner Tab Switcher
 ───────────────────────────────────────────────────────────────────────────── */
-const LearnerTabs = ({ tabs, active, onChange }: { tabs: string[]; active: string; onChange: (t: string) => void }) => (
-  <div className="flex gap-0 ">
-    {tabs.map(tab => {
+const LearnerTabs = ({
+  tabs,
+  active,
+  onChange,
+}: {
+  tabs: string[];
+  active: string;
+  onChange: (t: string) => void;
+}) => (
+  <div className="flex gap-0">
+    {tabs.map((tab) => {
       const isActive = active === tab;
       return (
         <button
@@ -100,15 +92,30 @@ const LearnerTabs = ({ tabs, active, onChange }: { tabs: string[]; active: strin
 );
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   Pill tab switcher (used in TeacherDashboard)
+   Pill tab switcher (Teacher)
 ───────────────────────────────────────────────────────────────────────────── */
-const PillTabs = ({ tabs, active, onChange }: { tabs: string[]; active: string; onChange: (t: string) => void }) => (
+const PillTabs = ({
+  tabs,
+  active,
+  onChange,
+}: {
+  tabs: string[];
+  active: string;
+  onChange: (t: string) => void;
+}) => (
   <div className="flex gap-1 p-1 rounded-full bg-black/20">
-    {tabs.map(tab => {
+    {tabs.map((tab) => {
       const isActive = active === tab;
       return (
-        <button key={tab} onClick={() => onChange(tab)}
-          className={`px-4 py-1.5 rounded-full text-xs font-extrabold transition-all ${isActive ? "bg-background text-foreground shadow-sm" : "text-white/80 hover:text-white"}`}>
+        <button
+          key={tab}
+          onClick={() => onChange(tab)}
+          className={`px-4 py-1.5 rounded-full text-xs font-extrabold transition-all ${
+            isActive
+              ? "bg-background text-foreground shadow-sm"
+              : "text-white/80 hover:text-white"
+          }`}
+        >
           {tab}
         </button>
       );
@@ -117,70 +124,24 @@ const PillTabs = ({ tabs, active, onChange }: { tabs: string[]; active: string; 
 );
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   Lesson / Content card
-───────────────────────────────────────────────────────────────────────────── */
-const getLevelIcon = (title: string, emoji: string): string => {
-  const t = title.toLowerCase();
-  if (t.includes("linear")) return "X";
-  if (t.includes("variable")) return "Σ";
-  if (t.includes("quadratic")) return "Q";
-  if (t.includes("function")) return "F";
-  if (t.includes("equation")) return "=";
-  if (t.includes("expression")) return "E";
-  if (t.includes("graph")) return "G";
-  if (t.includes("slope")) return "Δ";
-  if (t.includes("inequalit")) return "≠";
-  if (t.includes("factor")) return "×";
-  if (t.includes("polynom")) return "P";
-  if (t.includes("review")) return "★";
-  return title.charAt(0).toUpperCase() || emoji;
-};
-
-const LessonCard = ({ icon, title, subtitle, xpLabel, xpValue, statusLabel, statusValue, bg, fg, locked }:
-  { icon: string; title: string; subtitle: string; xpLabel?: string; xpValue?: string; statusLabel?: string; statusValue?: string; bg: string; fg: string; locked?: boolean }) => (
-  <div className="rounded-2xl p-4 flex flex-col gap-2" style={{ background: bg }}>
-    <div className="flex justify-between items-start">
-      <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg"
-        style={{ background: "rgba(0,0,0,0.22)", color: fg }}>{icon}</div>
-      <MoreHorizontal className="h-4 w-4" style={{ color: `${fg}55` }} />
-    </div>
-    <div>
-      <p className="font-extrabold text-sm leading-tight" style={{ color: fg }}>{title}</p>
-      <p className="text-[10px] font-bold mt-0.5" style={{ color: `${fg}88` }}>{subtitle}</p>
-    </div>
-    {xpLabel && !locked && (
-      <div>
-        <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: `${fg}70` }}>{xpLabel}</p>
-        <p className="text-base font-black" style={{ color: fg }}>{xpValue}</p>
-      </div>
-    )}
-    {statusLabel && (
-      <div>
-        <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: `${fg}70` }}>{statusLabel}</p>
-        <p className="text-base font-black text-green-500">{statusValue}</p>
-      </div>
-    )}
-    {locked && (
-      <div className="flex justify-between items-center mt-1">
-        <div className="flex items-center gap-1">
-          <Lock className="h-3 w-3" style={{ color: `${fg}60` }} />
-          <span className="text-[9px] font-black" style={{ color: `${fg}60` }}>Locked</span>
-        </div>
-        <span className="text-[9px] font-black" style={{ color: `${fg}60` }}>{xpValue}</span>
-      </div>
-    )}
-  </div>
-);
-
-/* ─────────────────────────────────────────────────────────────────────────────
    Class card (teacher)
 ───────────────────────────────────────────────────────────────────────────── */
-const ClassCard = ({ icon, title, subtitle, metric, metricLabel, bg, fg, progressBar, progressVal, progressLabel, progressRight }:
-  { icon: string; title: string; subtitle: string; metric?: string; metricLabel?: string; bg: string; fg: string; progressBar?: boolean; progressVal?: number; progressLabel?: string; progressRight?: string }) => (
+const ClassCard = ({
+  icon, title, subtitle, metric, metricLabel, bg, fg,
+  progressBar, progressVal, progressLabel, progressRight,
+}: {
+  icon: string; title: string; subtitle: string; metric?: string;
+  metricLabel?: string; bg: string; fg: string; progressBar?: boolean;
+  progressVal?: number; progressLabel?: string; progressRight?: string;
+}) => (
   <div className="rounded-2xl p-4 flex flex-col gap-2" style={{ background: bg }}>
     <div className="flex justify-between items-start">
-      <div className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm"
-        style={{ background: "rgba(0,0,0,0.2)", color: fg }}>{icon}</div>
+      <div
+        className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm"
+        style={{ background: "rgba(0,0,0,0.2)", color: fg }}
+      >
+        {icon}
+      </div>
       <MoreHorizontal className="h-4 w-4" style={{ color: `${fg}55` }} />
     </div>
     <div>
@@ -196,10 +157,21 @@ const ClassCard = ({ icon, title, subtitle, metric, metricLabel, bg, fg, progres
     {progressBar && (
       <div>
         <div className="w-full rounded-full h-1.5 mb-1" style={{ background: "rgba(255,255,255,0.15)" }}>
-          <div className="h-1.5 rounded-full" style={{ width: `${progressVal}%`, background: progressVal && progressVal > 50 ? "#4ade80" : "#f87171" }} />
+          <div
+            className="h-1.5 rounded-full"
+            style={{
+              width: `${progressVal}%`,
+              background: progressVal && progressVal > 50 ? "#4ade80" : "#f87171",
+            }}
+          />
         </div>
         <div className="flex justify-between">
-          <span className="text-[9px] font-black" style={{ color: progressVal && progressVal > 50 ? "#4ade80" : "#f87171" }}>{progressLabel}</span>
+          <span
+            className="text-[9px] font-black"
+            style={{ color: progressVal && progressVal > 50 ? "#4ade80" : "#f87171" }}
+          >
+            {progressLabel}
+          </span>
           <span className="text-[9px] font-bold" style={{ color: `${fg}50` }}>{progressRight}</span>
         </div>
       </div>
@@ -245,8 +217,10 @@ const AssignmentDeadlineCard = ({ items }: { items: AssignmentWithDeadline[] }) 
                   <p className="text-xs font-extrabold text-foreground truncate">{a.title || "Assignment"}</p>
                   <p className="text-[10px] text-muted-foreground font-semibold truncate">{a.className}</p>
                 </div>
-                <div className="flex items-center gap-1 px-2 py-1 rounded-full flex-shrink-0"
-                  style={{ background: u.bg, color: u.color }}>
+                <div
+                  className="flex items-center gap-1 px-2 py-1 rounded-full flex-shrink-0"
+                  style={{ background: u.bg, color: u.color }}
+                >
                   {u.icon}
                   <span className="text-[9px] font-black">{u.label}</span>
                 </div>
@@ -259,9 +233,8 @@ const AssignmentDeadlineCard = ({ items }: { items: AssignmentWithDeadline[] }) 
   );
 };
 
-
 /* ─────────────────────────────────────────────────────────────────────────────
-   TEACHER DASHBOARD (unchanged)
+   TEACHER DASHBOARD
 ───────────────────────────────────────────────────────────────────────────── */
 const TeacherDashboard = () => {
   const { user, profile } = useAuth();
@@ -269,8 +242,14 @@ const TeacherDashboard = () => {
   const [stats, setStats] = useState({ classCount: 0, studentCount: 0, assignmentCount: 0 });
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState("Overview");
-  const [classes, setClasses] = useState<{ id: string; name: string; class_code: string; studentCount: number; assignmentCount: number; avgScore: number }[]>([]);
-  const [assignments, setAssignments] = useState<{ id: string; title: string; description: string | null; due_date: string | null; class_name: string; submissions: number; total_students: number }[]>([]);
+  const [classes, setClasses] = useState<{
+    id: string; name: string; class_code: string;
+    studentCount: number; assignmentCount: number; avgScore: number;
+  }[]>([]);
+  const [assignments, setAssignments] = useState<{
+    id: string; title: string; description: string | null;
+    due_date: string | null; class_name: string; submissions: number; total_students: number;
+  }[]>([]);
   const [needsAttention, setNeedsAttention] = useState<{ name: string; avgScore: number; userId: string }[]>([]);
 
   useEffect(() => {
@@ -283,17 +262,18 @@ const TeacherDashboard = () => {
       const allClasses = classesRes.data || [];
       const allAssignments = assignmentsRes.data || [];
       const classIds = allClasses.map((c: any) => c.id);
-      let totalStudents = 0;
       let classDetails: typeof classes = [];
 
       if (classIds.length > 0) {
         const { data: members } = await supabase.from("class_members").select("user_id, class_id").in("class_id", classIds);
-        totalStudents = members?.length || 0;
+        const totalStudents = members?.length || 0;
 
         const memberIds = [...new Set((members || []).map((m: any) => m.user_id))];
         let progressByUser: Record<string, { score: number; total: number }> = {};
         if (memberIds.length > 0) {
-          const { data: progress } = await supabase.from("user_progress").select("user_id, score, total_questions, completed").in("user_id", memberIds).eq("completed", true);
+          const { data: progress } = await supabase
+            .from("user_progress").select("user_id, score, total_questions, completed")
+            .in("user_id", memberIds).eq("completed", true);
           (progress || []).forEach((p: any) => {
             if (!progressByUser[p.user_id]) progressByUser[p.user_id] = { score: 0, total: 0 };
             progressByUser[p.user_id].score += (p.score || 0);
@@ -303,62 +283,77 @@ const TeacherDashboard = () => {
           const { data: profs } = await supabase.from("profiles").select("user_id, display_name").in("user_id", memberIds);
           const profMap = Object.fromEntries((profs || []).map((p: any) => [p.user_id, p.display_name || "Unknown"]));
           const struggling: typeof needsAttention = [];
-          memberIds.forEach(uid => {
+          memberIds.forEach((uid) => {
             const prog = progressByUser[uid];
             const avg = prog && prog.total > 0 ? Math.round((prog.score / prog.total) * 100) : 0;
             if (avg < 50) struggling.push({ name: profMap[uid] || "Unknown", avgScore: avg, userId: uid });
           });
           setNeedsAttention(struggling.slice(0, 5));
-        }
 
-        classDetails = allClasses.map((c: any) => {
-          const classMembers = (members || []).filter((m: any) => m.class_id === c.id);
-          const classAssigns = allAssignments.filter((a: any) => a.class_id === c.id);
-          let totalPct = 0;
-          let countWithProgress = 0;
-          classMembers.forEach((m: any) => {
-            const prog = progressByUser[m.user_id];
-            if (prog && prog.total > 0) {
-              totalPct += Math.round((prog.score / prog.total) * 100);
-              countWithProgress++;
-            }
+          classDetails = allClasses.map((c: any) => {
+            const classMembers = (members || []).filter((m: any) => m.class_id === c.id);
+            const classAssigns = allAssignments.filter((a: any) => a.class_id === c.id);
+            let totalPct = 0;
+            let countWithProgress = 0;
+            classMembers.forEach((m: any) => {
+              const prog = progressByUser[m.user_id];
+              if (prog && prog.total > 0) {
+                totalPct += Math.round((prog.score / prog.total) * 100);
+                countWithProgress++;
+              }
+            });
+            const avgScore = countWithProgress > 0 ? Math.round(totalPct / countWithProgress) : 0;
+            return {
+              id: c.id, name: c.name, class_code: c.class_code,
+              studentCount: classMembers.length, assignmentCount: classAssigns.length, avgScore,
+            };
           });
-          const avgScore = countWithProgress > 0 ? Math.round(totalPct / countWithProgress) : 0;
-          return { id: c.id, name: c.name, class_code: c.class_code, studentCount: classMembers.length, assignmentCount: classAssigns.length, avgScore };
-        });
 
-        const assignmentDetails = await Promise.all(allAssignments.map(async (a: any) => {
-          const { data: subs } = await supabase.from("assignment_submissions").select("id").eq("assignment_id", a.id);
-          const cls = allClasses.find((c: any) => c.id === a.class_id);
-          const clsMembers = (members || []).filter((m: any) => m.class_id === a.class_id);
-          return {
-            id: a.id, title: a.title, description: a.description, due_date: a.due_date,
-            class_name: cls?.name || "Unknown", submissions: subs?.length || 0, total_students: clsMembers.length,
-          };
-        }));
-        setAssignments(assignmentDetails);
+          const assignmentDetails = await Promise.all(
+            allAssignments.map(async (a: any) => {
+              const { data: subs } = await supabase.from("assignment_submissions").select("id").eq("assignment_id", a.id);
+              const cls = allClasses.find((c: any) => c.id === a.class_id);
+              const clsMembers = (members || []).filter((m: any) => m.class_id === a.class_id);
+              return {
+                id: a.id, title: a.title, description: a.description, due_date: a.due_date,
+                class_name: cls?.name || "Unknown",
+                submissions: subs?.length || 0,
+                total_students: clsMembers.length,
+              };
+            })
+          );
+          setAssignments(assignmentDetails);
 
-        const { data: feed } = await supabase.from("class_feed").select("*")
-          .in("class_id", classIds).order("created_at", { ascending: false }).limit(5);
-        if (feed?.length) {
-          const uids = [...new Set(feed.map((f: any) => f.user_id))];
-          const { data: feedProfs } = await supabase.from("profiles").select("user_id, display_name").in("user_id", uids);
-          const map = Object.fromEntries((feedProfs || []).map((p: any) => [p.user_id, p.display_name]));
-          setRecentActivity(feed.map((f: any) => ({ ...f, display_name: map[f.user_id] || "Unknown" })));
+          const { data: feed } = await supabase
+            .from("class_feed").select("*")
+            .in("class_id", classIds).order("created_at", { ascending: false }).limit(5);
+          if (feed?.length) {
+            const uids = [...new Set(feed.map((f: any) => f.user_id))];
+            const { data: feedProfs } = await supabase.from("profiles").select("user_id, display_name").in("user_id", uids);
+            const map = Object.fromEntries((feedProfs || []).map((p: any) => [p.user_id, p.display_name]));
+            setRecentActivity(feed.map((f: any) => ({ ...f, display_name: map[f.user_id] || "Unknown" })));
+          }
+
+          setStats({ classCount: allClasses.length, studentCount: totalStudents, assignmentCount: allAssignments.length });
+        } else {
+          setStats({ classCount: allClasses.length, studentCount: 0, assignmentCount: allAssignments.length });
         }
+      } else {
+        setStats({ classCount: 0, studentCount: 0, assignmentCount: allAssignments.length });
       }
       setClasses(classDetails);
-      setStats({ classCount: allClasses.length, studentCount: totalStudents, assignmentCount: allAssignments.length });
     };
     fetchTeacherStats();
   }, [user]);
 
   const displayName = profile?.display_name || profile?.first_name || "Teacher";
+
   const parseValidDate = (value: string | null | undefined) => {
     if (!value) return null;
     const parsed = new Date(value);
     return Number.isNaN(parsed.getTime()) ? null : parsed;
   };
+
   const getAssignmentDueLabel = (value: string | null | undefined) => {
     const dueDate = parseValidDate(value);
     if (!dueDate) return null;
@@ -368,7 +363,15 @@ const TeacherDashboard = () => {
     if (daysLeft === 1) return "1d left";
     return `${daysLeft}d left`;
   };
-  const timeAgo = (d: string) => { const m = Math.floor((Date.now() - new Date(d).getTime()) / 60000); if (m < 60) return `${m}m`; const h = Math.floor(m / 60); if (h < 24) return `${h}h`; return `${Math.floor(h / 24)}d`; };
+
+  const timeAgo = (d: string) => {
+    const m = Math.floor((Date.now() - new Date(d).getTime()) / 60000);
+    if (m < 60) return `${m}m`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h}h`;
+    return `${Math.floor(h / 24)}d`;
+  };
+
   const classCardColors = ["#27ff72", "#0d9488", "#7c3aed", "#d97706", "#2d7a45", "#dc2626"];
   const overallAvg = classes.length > 0 ? Math.round(classes.reduce((s, c) => s + c.avgScore, 0) / classes.length) : 0;
 
@@ -377,13 +380,13 @@ const TeacherDashboard = () => {
       <div className="rounded-2xl p-4 flex items-center justify-between gap-3 bg-card border border-border">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1.5">
-        <span className="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded" style={{ background: "#27ff72", color: "#0a0a0a" }}>INSIGHT</span>
-        <span className="text-[9px] font-bold text-muted-foreground">Class report ›</span>
+            <span className="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded" style={{ background: "#27ff72", color: "#0a0a0a" }}>INSIGHT</span>
+            <span className="text-[9px] font-bold text-muted-foreground">Class report ›</span>
           </div>
           <p className="text-xs font-bold text-foreground leading-snug">
-        {stats.studentCount > 0
-          ? `Class avg is ${overallAvg}% this week. ${needsAttention.length} student${needsAttention.length !== 1 ? "s" : ""} need attention.`
-          : "Create a class and invite students to get started!"}
+            {stats.studentCount > 0
+              ? `Class avg is ${overallAvg}% this week. ${needsAttention.length} student${needsAttention.length !== 1 ? "s" : ""} need attention.`
+              : "Create a class and invite students to get started!"}
           </p>
         </div>
         <WeekBarChart accent="#27ff72" />
@@ -415,11 +418,16 @@ const TeacherDashboard = () => {
                 />
               </div>
             ))}
-            <AssignmentDeadlineCard items={assignments.map(a => {
-              const d = parseValidDate(a.due_date);
-              const daysLeft = d ? Math.ceil((d.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : 999;
-              return { id: a.id, title: a.title, className: a.class_name, daysLeft };
-            }).filter(a => a.daysLeft <= 14).sort((a, b) => a.daysLeft - b.daysLeft)} />
+            <AssignmentDeadlineCard
+              items={assignments
+                .map((a) => {
+                  const d = parseValidDate(a.due_date);
+                  const daysLeft = d ? Math.ceil((d.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : 999;
+                  return { id: a.id, title: a.title, className: a.class_name, daysLeft };
+                })
+                .filter((a) => a.daysLeft <= 14)
+                .sort((a, b) => a.daysLeft - b.daysLeft)}
+            />
             {needsAttention.length > 0 && (
               <div className="rounded-2xl p-4 flex flex-col gap-2" style={{ background: "#111827" }}>
                 <div className="flex justify-between items-start">
@@ -455,14 +463,18 @@ const TeacherDashboard = () => {
         ) : (
           <div className="grid grid-cols-2 gap-3">
             {assignments.slice(0, 4).map((a, i) => {
-              const dueDate = parseValidDate(a.due_date);
               const dueLabel = getAssignmentDueLabel(a.due_date);
               const pct = a.total_students > 0 ? Math.round((a.submissions / a.total_students) * 100) : 0;
               return (
-                <div key={a.id} onClick={() => setActiveTab("Assignments")} className="cursor-pointer rounded-2xl p-4 flex flex-col gap-2" style={{ background: ["#0d9488", "#7c3aed", "#d97706", "#1565c0"][i % 4] }}>
+                <div
+                  key={a.id}
+                  onClick={() => setActiveTab("Assignments")}
+                  className="cursor-pointer rounded-2xl p-4 flex flex-col gap-2"
+                  style={{ background: ["#0d9488", "#7c3aed", "#d97706", "#1565c0"][i % 4] }}
+                >
                   <div className="flex justify-between items-start">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm" style={{ background: "rgba(0,0,0,0.2)", color: "#fff" }}>
-                      <ClipboardList className="h-4 w-4" />
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(0,0,0,0.2)" }}>
+                      <ClipboardList className="h-4 w-4 text-white" />
                     </div>
                     <MoreHorizontal className="h-4 w-4" style={{ color: "rgba(255,255,255,0.4)" }} />
                   </div>
@@ -495,23 +507,29 @@ const TeacherDashboard = () => {
       <div>
         <p className="font-black text-foreground text-sm mb-3">Recent Activity</p>
         <div className="rounded-2xl overflow-hidden bg-card border border-border">
-          {recentActivity.length > 0 ? recentActivity.map((item, i) => {
-            const initials = (item.display_name || "?").split(" ").map((n: string) => n[0]).join("").slice(0, 2);
-            return (
-              <div key={i}>
-                <div className="flex items-center gap-3 px-4 py-3">
-                  <div className="h-9 w-9 rounded-full flex items-center justify-center font-black text-[11px] text-white flex-shrink-0"
-                    style={{ background: ["#1565c0","#059669","#d97706"][i % 3] }}>{initials}</div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-extrabold text-foreground">{item.display_name}</p>
-                    <p className="text-xs font-semibold truncate text-muted-foreground">{item.content || item.action_type}</p>
+          {recentActivity.length > 0 ? (
+            recentActivity.map((item, i) => {
+              const initials = (item.display_name || "?").split(" ").map((n: string) => n[0]).join("").slice(0, 2);
+              return (
+                <div key={i}>
+                  <div className="flex items-center gap-3 px-4 py-3">
+                    <div
+                      className="h-9 w-9 rounded-full flex items-center justify-center font-black text-[11px] text-white flex-shrink-0"
+                      style={{ background: ["#1565c0", "#059669", "#d97706"][i % 3] }}
+                    >
+                      {initials}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-extrabold text-foreground">{item.display_name}</p>
+                      <p className="text-xs font-semibold truncate text-muted-foreground">{item.content || item.action_type}</p>
+                    </div>
+                    <span className="text-xs font-bold flex-shrink-0 text-muted-foreground">{timeAgo(item.created_at)}</span>
                   </div>
-                  <span className="text-xs font-bold flex-shrink-0 text-muted-foreground">{timeAgo(item.created_at)}</span>
+                  {i < recentActivity.length - 1 && <div className="mx-4 h-px bg-border" />}
                 </div>
-                {i < recentActivity.length - 1 && <div className="mx-4 h-px bg-border" />}
-              </div>
-            );
-          }) : (
+              );
+            })
+          ) : (
             <div className="px-4 py-6 text-center">
               <p className="text-sm text-muted-foreground">No recent activity yet.</p>
             </div>
@@ -534,15 +552,16 @@ const TeacherDashboard = () => {
           <BookOpen className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
           <p className="text-sm font-bold text-foreground mb-1">No classes yet</p>
           <p className="text-xs text-muted-foreground mb-3">Create your first class to get started</p>
-          <button onClick={() => navigate("/class")} className="px-4 py-2 rounded-full text-xs font-black text-white" style={{ background: "#27ff72", color: "#0a0a0a" }}>Create Class</button>
+          <button onClick={() => navigate("/class")} className="px-4 py-2 rounded-full text-xs font-black" style={{ background: "#27ff72", color: "#0a0a0a" }}>
+            Create Class
+          </button>
         </div>
       ) : (
         <div className="space-y-3">
           {classes.map((c, i) => (
             <div key={c.id} onClick={() => navigate("/class")} className="cursor-pointer rounded-2xl p-4 bg-card border border-border hover:border-primary/30 transition-colors">
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-white"
-                  style={{ background: classCardColors[i % classCardColors.length] }}>
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-white" style={{ background: classCardColors[i % classCardColors.length] }}>
                   {c.name.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1">
@@ -606,7 +625,9 @@ const TeacherDashboard = () => {
           <ClipboardList className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
           <p className="text-sm font-bold text-foreground mb-1">No assignments yet</p>
           <p className="text-xs text-muted-foreground mb-3">Create assignments from your class page</p>
-          <button onClick={() => navigate("/class")} className="px-4 py-2 rounded-full text-xs font-black text-white" style={{ background: "#27ff72", color: "#0a0a0a" }}>Go to Classes</button>
+          <button onClick={() => navigate("/class")} className="px-4 py-2 rounded-full text-xs font-black" style={{ background: "#27ff72", color: "#0a0a0a" }}>
+            Go to Classes
+          </button>
         </div>
       ) : (
         <div className="space-y-3">
@@ -623,7 +644,9 @@ const TeacherDashboard = () => {
                   </div>
                   {dueDate && (
                     <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                      <Badge variant="outline" className="text-[9px]">Due {dueDate.toLocaleDateString(undefined, { month: "short", day: "numeric" })}</Badge>
+                      <Badge variant="outline" className="text-[9px]">
+                        Due {dueDate.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                      </Badge>
                       {dueLabel && <span className="text-[10px] font-bold text-muted-foreground">{dueLabel}</span>}
                     </div>
                   )}
@@ -644,84 +667,71 @@ const TeacherDashboard = () => {
   return (
     <div className="min-h-screen pb-24 bg-background" style={{ fontFamily: "'Nunito',sans-serif" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap');`}</style>
-       <div className="relative pb-10" style={{ borderBottomLeftRadius: 28, borderBottomRightRadius: 28, backgroundImage: `url(${teacherBG})`, backgroundSize: "cover", backgroundPosition: "center" }}>
-          
-          {/* Upper dark gradient */}
-          <div className="absolute inset-0 pointer-events-none" style={{
-            background: "linear-gradient(to top, transparent 40%, rgba(0,0,0,0.6) 100%)"
-          }} />
+      <div
+        className="relative pb-10"
+        style={{
+          borderBottomLeftRadius: 28,
+          borderBottomRightRadius: 28,
+          backgroundImage: `url(${teacherBG})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      >
+        <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(to top, transparent 40%, rgba(0,0,0,0.6) 100%)" }} />
+        <div className="absolute inset-0 pointer-events-none" style={{ borderBottomLeftRadius: 28, borderBottomRightRadius: 28, background: "linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.6) 100%)" }} />
 
-          {/* Bottom dark gradient */}
-          <div className="absolute inset-0 pointer-events-none" style={{
-            borderBottomLeftRadius: 28,
-            borderBottomRightRadius: 28,
-            background: "linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.6) 100%)"
-          }} />
+        <div className="max-w-screen-md mx-auto">
+          <div className="relative px-5 pt-12 pb-0 flex justify-between items-start">
+            <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50">Classroom Overview</p>
+              <h1 className="text-2xl font-black mt-0.5 text-white">
+                Hi, <span style={{ color: "#27ff72" }}>{displayName}</span>!
+              </h1>
+            </motion.div>
+            <button
+              className="flex items-center gap-1 px-3 py-2 rounded-full text-xs font-black"
+              style={{ background: "rgba(255,255,255,0.18)", color: "white" }}
+              onClick={() => navigate("/class")}
+            >
+              {stats.classCount > 0 ? <><BookOpen className="h-3.5 w-3.5" /> My class</> : <><Plus className="h-3.5 w-3.5" /> New class</>}
+            </button>
+          </div>
 
-          <div className="max-w-screen-md mx-auto">
-            <div className="relative px-5 pt-12 pb-0 flex justify-between items-start">
-              <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50">Classroom Overview</p>
-                <h1 className="text-2xl font-black mt-0.5 text-white">
-                  Hi, <span style={{ color: "#27ff72" }}>{displayName}</span>!
-                </h1>
-              </motion.div>
-              <button className="flex items-center gap-1 px-3 py-2 rounded-full text-xs font-black"
-                style={{ background: "rgba(255,255,255,0.18)", color: "white" }} onClick={() => navigate("/class")}>
-                {stats.classCount > 0 ? <><BookOpen className="h-3.5 w-3.5" /> My class</> : <><Plus className="h-3.5 w-3.5" /> New class</>}
-              </button>
-            </div>
+          <div className="px-5 pt-6 pb-0 relative overflow-hidden" style={{ minHeight: 200 }}>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex items-baseline leading-none">
+              <span className="font-black" style={{ fontSize: "clamp(100px, 28vw, 200px)", lineHeight: 0.85, color: "#27ff72", letterSpacing: "-0.04em", marginLeft: "-4px" }}>
+                {stats.studentCount}
+              </span>
+            </motion.div>
+            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }} className="text-sm font-bold mt-2 max-w-xs leading-snug" style={{ color: "rgba(255,255,255,0.6)" }}>
+              Students across <strong className="text-white">{stats.classCount} active {stats.classCount === 1 ? "class" : "classes"}</strong>.
+            </motion.p>
+          </div>
 
-            {/* Hero: giant student count */}
-            <div className="px-5 pt-6 pb-0 relative overflow-hidden" style={{ minHeight: 200 }}>
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
-                className="flex items-baseline leading-none">
-                <span className="font-black" style={{
-                  fontSize: "clamp(100px, 28vw, 200px)",
-                  lineHeight: 0.85,
-                  color: "#27ff72",
-                  letterSpacing: "-0.04em",
-                  marginLeft: "-4px",
-                }}>
-                  {stats.studentCount}
-                </span>
-              </motion.div>
-              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }}
-                className="text-sm font-bold mt-2 max-w-xs leading-snug" style={{ color: "rgba(255,255,255,0.6)" }}>
-                Students across <strong className="text-white">{stats.classCount} active {stats.classCount === 1 ? "class" : "classes"}</strong>.
-              </motion.p>
-            </div>
+          <div className="relative px-5 pb-0 pt-6 grid grid-cols-3 gap-2">
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)" }}>
+              <p className="text-[9px] font-black uppercase tracking-[0.12em] text-white/50">Classes</p>
+              <p className="text-2xl font-black text-white mt-0.5 leading-none">{stats.classCount}</p>
+              <p className="text-[9px] font-bold mt-1 text-white/40">active</p>
+            </motion.div>
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.36 }} className="rounded-xl p-3" style={{ background: "rgba(39,255,114,0.15)", border: "1px solid rgba(39,255,114,0.3)" }}>
+              <p className="text-[9px] font-black uppercase tracking-[0.12em]" style={{ color: "rgba(39,255,114,0.7)" }}>Avg Score</p>
+              <p className="text-2xl font-black leading-none mt-0.5" style={{ color: "#27ff72" }}>{overallAvg}%</p>
+              <p className="text-[9px] font-bold mt-1" style={{ color: "rgba(39,255,114,0.5)" }}>class avg</p>
+            </motion.div>
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.42 }} className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)" }}>
+              <p className="text-[9px] font-black uppercase tracking-[0.12em] text-white/50">Tasks</p>
+              <p className="text-2xl font-black text-white mt-0.5 leading-none">{stats.assignmentCount}</p>
+              <p className="text-[9px] font-bold mt-1 text-white/40">assignments</p>
+            </motion.div>
+          </div>
 
-            {/* Stat cards */}
-            <div className="relative px-5 pb-0 pt-6 grid grid-cols-3 gap-2">
-              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-                className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)" }}>
-                <p className="text-[9px] font-black uppercase tracking-[0.12em] text-white/50">Classes</p>
-                <p className="text-2xl font-black text-white mt-0.5 leading-none">{stats.classCount}</p>
-                <p className="text-[9px] font-bold mt-1 text-white/40">active</p>
-              </motion.div>
-
-                <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.36 }}
-                className="rounded-xl p-3" style={{ background: "rgba(39,255,114,0.15)", border: "1px solid rgba(39,255,114,0.3)" }}>
-                <p className="text-[9px] font-black uppercase tracking-[0.12em]" style={{ color: "rgba(39,255,114,0.7)" }}>Avg Score</p>
-                <p className="text-2xl font-black leading-none mt-0.5" style={{ color: "#27ff72" }}>{overallAvg}%</p>
-                <p className="text-[9px] font-bold mt-1" style={{ color: "rgba(39,255,114,0.5)" }}>class avg</p>
-                </motion.div>
-
-              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.42 }}
-                className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)" }}>
-                <p className="text-[9px] font-black uppercase tracking-[0.12em] text-white/50">Tasks</p>
-                <p className="text-2xl font-black text-white mt-0.5 leading-none">{stats.assignmentCount}</p>
-                <p className="text-[9px] font-bold mt-1 text-white/40">assignments</p>
-              </motion.div>
-            </div>
-
-            {/* Tab bar */}
-            <div className="px-5 pt-5 relative">
-              <PillTabs tabs={["Overview", "Classes", "Assignments"]} active={activeTab} onChange={setActiveTab} />
-            </div>
+          <div className="px-5 pt-5 relative">
+            <PillTabs tabs={["Overview", "Classes", "Assignments"]} active={activeTab} onChange={setActiveTab} />
           </div>
         </div>
+      </div>
+
       <div className="max-w-screen-md mx-auto px-5 py-5">
         {activeTab === "Overview" && renderOverview()}
         {activeTab === "Classes" && renderClasses()}
@@ -732,291 +742,141 @@ const TeacherDashboard = () => {
 };
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   LEARNER HOME — Bold editorial dark header (app.tsx aesthetic)
+   LEARNER HOME — clean, uses <LearningPath /> component only
 ───────────────────────────────────────────────────────────────────────────── */
-interface LevelWithStatus {
-  id: string;
-  title: string | null;
-  order_index: number;
-  stage_id: string;
-  stage_title: string;
-  stage_emoji: string;
-  stage_description: string | null;
-  is_review: boolean;
-  status: "completed" | "current" | "locked";
-  score?: number;
-  total_questions?: number;
-}
-
-interface StageWithLevels {
-  id: string;
-  title: string;
-  emoji: string;
-  description: string | null;
-  order_index: number;
-  levels: LevelWithStatus[];
-}
-
-const cardColors = [
-  { bg: "#7c3aed", fg: "#ffffff" },
-  { bg: "#1565c0", fg: "#ffffff" },
-  { bg: "#0d9488", fg: "#ffffff" },
-  { bg: "#2d7a45", fg: "#ffffff" },
-  { bg: "#d97706", fg: "#ffffff" },
-  { bg: "#6366f1", fg: "#ffffff" },
-];
-
-const StageLevelItem = ({ level, onClick, colorIdx }: { level: LevelWithStatus; onClick: () => void; colorIdx: number }) => {
-  const color = cardColors[colorIdx % cardColors.length];
-  const isLocked = level.status === "locked";
-  const isCompleted = level.status === "completed";
-  const isCurrent = level.status === "current";
-  const scoreText = level.score != null && level.total_questions != null ? `${level.score}/${level.total_questions}` : null;
-
-  return (
-    <button
-      onClick={onClick}
-      disabled={isLocked}
-      className={`w-full rounded-2xl p-4 text-left transition-all ${isLocked ? "opacity-60 cursor-not-allowed" : "cursor-pointer hover:scale-[1.02] active:scale-[0.98]"} ${isCurrent ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""}`}
-      style={{ background: color.bg }}
-    >
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg flex-shrink-0"
-          style={{ background: "rgba(0,0,0,0.22)", color: color.fg }}>
-          {isCompleted ? <Check className="h-5 w-5" /> :
-           isLocked ? (level.is_review ? <Star className="h-4 w-4" /> : <Lock className="h-4 w-4" />) :
-           getLevelIcon(level.title || `Level ${level.order_index}`, level.stage_emoji)}
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="font-extrabold text-sm leading-tight truncate" style={{ color: color.fg }}>
-            {level.title || `Level ${level.order_index}`}
-          </p>
-          <p className="text-[10px] font-bold mt-0.5" style={{ color: `${color.fg}88` }}>
-            {level.is_review ? "Unit Review" : `Level ${level.order_index}`}
-          </p>
-        </div>
-        <div className="text-right flex-shrink-0">
-          {isCompleted && <span className="text-[10px] font-black" style={{ color: "#4ade80" }}>{scoreText || "Done ✓"}</span>}
-          {isCurrent && <span className="text-[10px] font-black" style={{ color: color.fg }}>Start →</span>}
-          {isLocked && <span className="text-[10px] font-black" style={{ color: `${color.fg}60` }}>Locked</span>}
-        </div>
-      </div>
-    </button>
-  );
-};
-
 const LearnerHome = () => {
   const { user, profile, isGuest } = useAuth();
-  const navigate = useNavigate();
-  const [stages, setStages] = useState<StageWithLevels[]>([]);
   const [stats, setStats] = useState({ completed: 0, total: 20 });
-  const [activeTab, setActiveTab] = useState("All");
-  const [loading, setLoading] = useState(true);
-  const { checkAuth, gateOpen, setGateOpen } = useGuestGate();
+  const [currentStageName, setCurrentStageName] = useState<string | null>(null);
+  const [currentStageIndex, setCurrentStageIndex] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState("Path");
+  const { gateOpen, setGateOpen } = useGuestGate();
 
+  /* prevent swipe-back */
   useEffect(() => {
-    const fetchData = async () => {
+    const handlePopState = () => window.history.pushState(null, "", window.location.href);
+    window.history.pushState(null, "", window.location.href);
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  /* fetch only stats + current stage for the header */
+  useEffect(() => {
+    const fetchStats = async () => {
       const [stagesRes, levelsRes] = await Promise.all([
-        supabase.from("stages").select("*").order("order_index"),
-        supabase.from("levels").select("*").order("order_index"),
+        supabase.from("stages").select("id, title, order_index").order("order_index"),
+        supabase.from("levels").select("id, stage_id, order_index").order("order_index"),
       ]);
 
-      let progressMap: Record<string, { completed: boolean; score?: number; total_questions?: number }> = {};
+      let progressMap: Record<string, boolean> = {};
       if (user) {
         const { data: progressData } = await supabase
-          .from("user_progress").select("level_id, completed, score, total_questions").eq("user_id", user.id);
+          .from("user_progress").select("level_id, completed").eq("user_id", user.id);
         if (progressData) {
-          progressData.forEach(p => {
-            progressMap[p.level_id] = { completed: !!p.completed, score: p.score ?? undefined, total_questions: p.total_questions ?? undefined };
-          });
+          progressData.forEach((p) => { progressMap[p.level_id] = !!p.completed; });
         }
       }
 
       if (stagesRes.data && levelsRes.data) {
-        let foundCurrent = false;
-        const builtStages: StageWithLevels[] = stagesRes.data.map(s => {
-          const stageLevels = levelsRes.data!
-            .filter(l => l.stage_id === s.id)
-            .map(l => {
-              let status: "completed" | "current" | "locked" = "locked";
-              if (progressMap[l.id]?.completed) {
-                status = "completed";
-              } else if (!foundCurrent) {
-                status = "current";
-                foundCurrent = true;
-              }
-              return {
-                id: l.id, title: l.title, order_index: l.order_index, stage_id: l.stage_id,
-                stage_title: s.title, stage_emoji: s.emoji || "📘", stage_description: s.description,
-                is_review: l.is_review || false, status,
-                score: progressMap[l.id]?.score, total_questions: progressMap[l.id]?.total_questions,
-              } as LevelWithStatus;
-            });
-          return { id: s.id, title: s.title, emoji: s.emoji || "📘", description: s.description, order_index: s.order_index, levels: stageLevels };
-        });
-
-        if (isGuest && !user) {
-          let unlocked = 0;
-          builtStages.forEach(st => {
-            st.levels.forEach(l => {
-              if (unlocked < 2 && l.status !== "completed") {
-                if (unlocked === 0) l.status = "current";
-                unlocked++;
-              }
-            });
-          });
-        }
-
-        const allLevels = builtStages.flatMap(s => s.levels);
-        const completedCount = allLevels.filter(l => l.status === "completed").length;
-        setStages(builtStages);
+        const allLevels = levelsRes.data;
+        const completedCount = allLevels.filter((l) => progressMap[l.id]).length;
         setStats({ completed: completedCount, total: allLevels.length });
-      }
-      setLoading(false);
-    };
-    fetchData();
-  }, [user, isGuest]);
 
-  const handleLevelClick = (level: LevelWithStatus) => {
-    if (level.status === "locked") return;
-    if (!checkAuth()) return;
-    navigate(`/activity/${level.id}`);
-  };
+        // find first stage with an incomplete level
+        let found = false;
+        for (const stage of stagesRes.data) {
+          const stageLevels = allLevels.filter((l) => l.stage_id === stage.id);
+          if (stageLevels.some((l) => !progressMap[l.id]) && !found) {
+            setCurrentStageName(stage.title);
+            setCurrentStageIndex(stage.order_index);
+            found = true;
+          }
+        }
+      }
+    };
+    fetchStats();
+  }, [user]);
 
   const displayName = profile?.display_name || profile?.first_name || (isGuest ? "Guest" : "Learner");
   const progress = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
   const streak = stats.completed > 0 ? Math.min(stats.completed, 7) : 0;
+  const { lives, nextRefillSeconds } = useLives();
+  const showTimer = lives < 5 && nextRefillSeconds !== null;
 
-  const filteredStages = stages.map(stage => {
-    let filteredLevels = stage.levels;
-    if (activeTab === "Completed") filteredLevels = stage.levels.filter(l => l.status === "completed");
-    else if (activeTab === "In Progress") filteredLevels = stage.levels.filter(l => l.status === "current");
-    return { ...stage, levels: filteredLevels };
-  }).filter(s => s.levels.length > 0);
-
-  const currentStageId = stages.find(s => s.levels.some(l => l.status === "current"))?.id;
-
-  // Find current stage name for the header description
-  const currentStage = stages.find(s => s.id === currentStageId);
-  // Heart 
- const { lives, nextRefillSeconds } = useLives();
- const showTimer = lives < 5 && nextRefillSeconds !== null;
-
-  const formatTime = (seconds: number): string => {
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m}:${s.toString().padStart(2, "0")}`;
-};
-  // Greeting based on time of day
-  const getGreeting = () => {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 18) return "Good afternoon";
-  return "Good evening";
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, "0")}`;
   };
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 18) return "Good afternoon";
+    return "Good evening";
+  };
+
   return (
     <div className="min-h-screen pb-24 bg-background" style={{ fontFamily: "'Nunito',sans-serif" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap');
-        .learner-header { background: hsl(var(--card)); border-bottom: 1px solid hsl(var(--border)); }
-       .stat-card { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); }
-        .stat-card-accent { background: rgba(39,255,114,0.12); border: 1px solid rgba(39,255,114,0.25); }
+        .stat-card        { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); }
+        .stat-card-accent { background: rgba(39,255,114,0.12);  border: 1px solid rgba(39,255,114,0.25); }
         .stat-card-hearts { background: rgba(248,113,113,0.12); border: 1px solid rgba(248,113,113,0.25); }
-        .insight-card { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); }
-        .stage-card { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); }
-        .stage-card-active { background: hsl(var(--card)); border: 1px solid color-mix(in srgb, #27ff72 30%, transparent); }
-        .empty-card { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); }
-        .learner-tab-bar { border-bottom: 1px solid hsl(var(--border)); }
+        .insight-card     { background: hsl(var(--card));       border: 1px solid hsl(var(--border)); }
       `}</style>
 
-      {/* ── EDITORIAL HEADER — adapts to light/dark via CSS vars ── */}
-      <div className="relative pb-10"style={{borderBottomLeftRadius: 28, borderBottomRightRadius: 28,  backgroundImage: `url(${BG})`, backgroundSize: "cover", backgroundPosition: "center" }}>
-      
-        {/* Upper-only dark gradient mask */}
-          <div className="absolute inset-0 pointer-events-none" style={{
-            background: "linear-gradient(to top, transparent 40%, rgba(0,0,0,0.6) 100%)"
-          }} />
+      {/* ── HERO HEADER ── */}
+      <div
+        className="relative pb-10"
+        style={{
+          borderBottomLeftRadius: 28,
+          borderBottomRightRadius: 28,
+          backgroundImage: `url(${BG})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      >
+        <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(to top, transparent 40%, rgba(0,0,0,0.6) 100%)" }} />
+        <div className="absolute inset-0 pointer-events-none" style={{ borderBottomLeftRadius: 28, borderBottomRightRadius: 28, background: "linear-gradient(to bottom, transparent 1%, rgba(0,0,0,0.6) 100%)" }} />
 
-        {/* Bottom-only dark gradient mask */}
-          <div className="absolute inset-0 pointer-events-none" style={{
-            borderBottomLeftRadius: 28,
-            borderBottomRightRadius: 28,
-            background: "linear-gradient(to bottom, transparent 1%, rgba(0,0,0,0.6) 100%)"
-          }} />
-      
         <div className="max-w-screen-md mx-auto">
-
-          {/* Top bar — no HeartsHeaderPill here, hearts moved to stat card */}
-          <div className="relative px-5 pt-12 pb-0 flex justify-between items-start">
+          {/* greeting */}
+          <div className="relative px-5 pt-12 pb-0">
             <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50">
-                Student Overview
-              </p>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50">Student Overview</p>
               <h1 className="text-2xl font-black mt-0.5 text-white">
                 {getGreeting()}, <span style={{ color: "#27ff72" }}>{displayName}</span>!
               </h1>
             </motion.div>
           </div>
 
-          {/* Hero: giant % + floating mascot */}
-          <div className="px-5 pt-6 pb-0 relative overflow-hidden" style={{ minHeight: 200 }}>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="flex items-baseline leading-none"
-            >
-              <span
-                className="font-black text-white/60"
-                style={{
-                  fontSize: "clamp(100px, 28vw, 200px)",
-                  lineHeight: 0.85,
-                  
-                  letterSpacing: "-0.04em",
-                  marginLeft: "-4px",
-                }}
-              >
+          {/* hero: giant % */}
+          <div className="px-5 pt-6 pb-0 relative overflow-hidden" style={{ minHeight: 180 }}>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="flex items-baseline leading-none">
+              <span className="font-black text-white/60" style={{ fontSize: "clamp(100px, 28vw, 200px)", lineHeight: 0.85, letterSpacing: "-0.04em", marginLeft: "-4px" }}>
                 {progress}
               </span>
-              <span
-                className="font-black text-white/60"
-                style={{
-                  fontSize: "clamp(36px, 9vw, 64px)",
-                  marginLeft: "-4px",
-                  marginBottom: "8px",
-                  alignSelf: "flex-end",
-                }}
-              >
+              <span className="font-black text-white/60" style={{ fontSize: "clamp(36px, 9vw, 64px)", marginLeft: "-4px", marginBottom: 8, alignSelf: "flex-end" }}>
                 %
               </span>
             </motion.div>
-
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.25 }}
-              className="text-sm font-bold mt-2 max-w-xs leading-snug text-muted-foreground"
-            >
-              {currentStage
-                  ? <>Your <strong className="text-white">Algebra Journey</strong>. Currently tackling <strong className="text-white">{currentStage.title}</strong>.</>
-                  : <>Your <strong className="text-white">Algebra Journey</strong> is complete. Outstanding work!</>
-                }
+            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }} className="text-sm font-bold mt-2 max-w-xs leading-snug text-muted-foreground">
+              {currentStageName
+                ? <><strong className="text-white">Algebra Journey</strong>. Tackling <strong className="text-white">{currentStageName}</strong> now.</>
+                : <><strong className="text-white">Algebra Journey</strong> complete. Outstanding!</>}
             </motion.p>
           </div>
 
-          {/* ── 4 stat cards: Lessons · Streak · Stage · Hearts ── */}
-          <div className="relative px-5 pb-0 pt-6 grid grid-cols-4 gap-2">
-            {/* Lessons */}
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-              className="stat-card rounded-xl p-3">
-             <p className="text-[9px] font-black uppercase tracking-[0.12em] text-white/50">Lessons</p>
+          {/* 4 stat chips */}
+          <div className="relative px-5 pb-0 pt-5 grid grid-cols-4 gap-2">
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.30 }} className="stat-card rounded-xl p-3">
+              <p className="text-[9px] font-black uppercase tracking-[0.12em] text-white/50">Done</p>
               <p className="text-2xl font-black text-white mt-0.5 leading-none">{stats.completed}</p>
               <p className="text-[9px] font-bold mt-1 text-white/40">/ {stats.total}</p>
             </motion.div>
 
-            {/* Streak */}
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.36 }}
-              className="stat-card rounded-xl p-3">
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.36 }} className="stat-card rounded-xl p-3">
               <p className="text-[9px] font-black uppercase tracking-[0.12em] text-white/50">Streak</p>
               <div className="flex items-baseline gap-0.5 mt-0.5">
                 <p className="text-2xl font-black text-white leading-none">{streak}</p>
@@ -1025,152 +885,68 @@ const LearnerHome = () => {
               <p className="text-[9px] font-bold mt-1 text-white/40">days</p>
             </motion.div>
 
-            {/* Stage — neon accent */}
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.42 }}
-              className="stat-card-accent rounded-xl p-3">
-              <p className="text-[9px] font-black uppercase tracking-[0.12em]" style={{ color: "color-mix(in srgb, #27ff72 60%, transparent)" }}>Stage</p>
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.42 }} className="stat-card-accent rounded-xl p-3">
+              <p className="text-[9px] font-black uppercase tracking-[0.12em]" style={{ color: "rgba(39,255,114,0.65)" }}>Stage</p>
               <p className="text-2xl font-black leading-none mt-0.5" style={{ color: "#27ff72" }}>
-                {currentStage ? currentStage.order_index : "✓"}
+                {currentStageIndex ?? "✓"}
               </p>
-              <p className="text-[9px] font-bold mt-1 truncate" style={{ color: "color-mix(in srgb, #27ff72 55%, transparent)" }}>
-                {currentStage ? currentStage.title : "Done!"}
+              <p className="text-[9px] font-bold mt-1 truncate" style={{ color: "rgba(39,255,114,0.55)" }}>
+                {currentStageName ?? "Done!"}
               </p>
             </motion.div>
 
-            {/* Hearts — red accent, pulls from HeartsHeaderPill context */}
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.48 }}
-              className="stat-card-hearts rounded-xl p-3">
-              <p className="text-[9px] font-black uppercase tracking-[0.12em]" style={{ color: "color-mix(in srgb, #f87171 60%, transparent)" }}>Hearts</p>
-            <div className="flex items-baseline gap-0.5 mt-0.5">
-              <p className="text-2xl font-black text-white leading-none">{lives}</p>
-              <span className="text-sm" style={{ lineHeight: 1 }}><Heart color="red" size={16}/></span>
-            </div>
-             <p className="text-[9px] font-bold mt-1" style={{ color: "color-mix(in srgb, #f87171 55%, transparent)" }}>
-              {showTimer && nextRefillSeconds !== null ? formatTime(nextRefillSeconds) : "remaining"}
-            </p>
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.48 }} className="stat-card-hearts rounded-xl p-3">
+              <p className="text-[9px] font-black uppercase tracking-[0.12em]" style={{ color: "rgba(248,113,113,0.65)" }}>Hearts</p>
+              <div className="flex items-baseline gap-0.5 mt-0.5">
+                <p className="text-2xl font-black text-white leading-none">{lives}</p>
+                <Heart color="red" size={13} style={{ marginBottom: 2 }} />
+              </div>
+              <p className="text-[9px] font-bold mt-1" style={{ color: "rgba(248,113,113,0.55)" }}>
+                {showTimer && nextRefillSeconds !== null ? formatTime(nextRefillSeconds) : "remaining"}
+              </p>
             </motion.div>
           </div>
 
-          {/* ── Tab bar ── */}
+          {/* tab bar */}
           <div className="px-5 pt-5">
-            <LearnerTabs
-              tabs={["All", "In Progress", "Completed"]}
-              active={activeTab}
-              onChange={setActiveTab}
-            />
+            <LearnerTabs tabs={["Path", "Daily"]} active={activeTab} onChange={setActiveTab} />
           </div>
         </div>
       </div>
 
-      {/* ── CONTENT AREA ── */}
+      {/* ── CONTENT ── */}
       <div className="max-w-screen-md mx-auto px-5 py-5 space-y-5">
-
-        {/* Insight strip */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="insight-card rounded-xl p-4 flex items-center justify-between gap-3"
-        >
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded"
-                style={{ background: "#27ff72", color: "#0a0a0a" }}>
-                INSIGHT
-              </span>
-              <span className="text-[9px] font-bold text-muted-foreground">Daily challenge ›</span>
-            </div>
-            <p className="text-xs font-bold leading-snug text-muted-foreground">
-              You've completed <strong style={{ color: "#27ff72" }}>{stats.completed} levels</strong>. Keep going!
-            </p>
-          </div>
-          <WeekBarChart accent="#27ff72" />
-        </motion.div>
-
-        {loading ? (
-          <div className="flex justify-center py-8">
-            <div className="animate-spin h-6 w-6 border-4 rounded-full border-primary border-t-transparent" />
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {filteredStages.map((stage, stageIdx) => {
-              const isCurrent = stage.id === currentStageId;
-              const completedInStage = stage.levels.filter(l => l.status === "completed").length;
-              const totalInStage = stages.find(s => s.id === stage.id)?.levels.length || 4;
-              const stageProgress = Math.round((completedInStage / totalInStage) * 100);
-
-              return (
-                <motion.div
-                  key={stage.id}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: stageIdx * 0.08 }}
-                >
-                  {/* Stage header */}
-                  <div className={`rounded-xl p-4 mb-3 ${isCurrent ? "stage-card-active" : "stage-card"}`}>
-                    <div className="flex items-center gap-3">
-                      <div className="flex-1">
-                        <p className="text-[9px] font-black uppercase tracking-[0.15em] text-muted-foreground">
-                          Stage {stage.order_index}
-                        </p>
-                        <p className={`font-black text-sm ${isCurrent ? "" : "text-foreground"}`} style={isCurrent ? { color: "#27ff72" } : {}}>
-                          {stage.title}
-                        </p>
-                        {stage.description && (
-                          <p className="text-[11px] font-semibold mt-0.5 leading-snug text-muted-foreground">
-                            {stage.description}
-                          </p>
-                        )}
-                      </div>
-                      <div className="text-right flex-shrink-0">
-                        <p className={`text-lg font-black ${isCurrent ? "" : "text-foreground"}`} style={isCurrent ? { color: "#27ff72" } : {}}>
-                          {stageProgress}%
-                        </p>
-                        <p className="text-[9px] font-bold text-muted-foreground">{completedInStage}/{totalInStage}</p>
-                      </div>
-                    </div>
-                    {/* Progress bar */}
-                    <div className="mt-2 w-full rounded-full h-[2px] bg-border">
-                      <div className="h-[2px] rounded-full transition-all"
-                        style={{
-                          width: `${stageProgress}%`,
-                          background: stageProgress === 100 ? "#27ff72" : isCurrent ? "#27ff72" : "hsl(var(--muted-foreground))"
-                        }} />
-                    </div>
-                  </div>
-
-                  {/* Levels list */}
-                  <div className="space-y-2 pl-2">
-                    {stage.levels.map((level, levelIdx) => (
-                      <motion.div
-                        key={level.id}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: stageIdx * 0.08 + levelIdx * 0.04 }}
-                      >
-                        <StageLevelItem
-                          level={level}
-                          onClick={() => handleLevelClick(level)}
-                          colorIdx={stageIdx * 4 + levelIdx}
-                        />
-                      </motion.div>
-                    ))}
-                  </div>
-                </motion.div>
-              );
-            })}
-
-            {filteredStages.length === 0 && (
-              <div className="empty-card rounded-xl p-8 text-center">
-                <p className="text-sm text-muted-foreground">No levels match this filter.</p>
+        {activeTab === "Path" && (
+          <>
+            {/* insight strip */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+              className="insight-card rounded-xl p-4 flex items-center justify-between gap-3"
+            >
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded" style={{ background: "#27ff72", color: "#0a0a0a" }}>
+                    INSIGHT
+                  </span>
+                  <span className="text-[9px] font-bold text-muted-foreground">Your progress ›</span>
+                </div>
+                <p className="text-xs font-bold leading-snug text-muted-foreground">
+                  You've completed <strong style={{ color: "#27ff72" }}>{stats.completed} levels</strong>. Keep going!
+                </p>
               </div>
-            )}
-          </div>
+              <WeekBarChart accent="#27ff72" />
+            </motion.div>
+
+            {/* LearningPath handles all stage/level rendering */}
+            <LearningPath />
+          </>
         )}
 
-        {/* Daily Challenge */}
-        <DailyChallenge />
+        {activeTab === "Daily" && <DailyChallenge />}
       </div>
+
       <GuestGateDialog open={gateOpen} onOpenChange={setGateOpen} />
     </div>
   );
@@ -1204,5 +980,3 @@ const Index = () => {
 };
 
 export default Index;
-
-

@@ -35,7 +35,15 @@ const Activity = () => {
   const [loading, setLoading] = useState(true);
   const [levelTitle, setLevelTitle] = useState("");
   const [stageTitle, setStageTitle] = useState("");
-
+  
+  useEffect(() => {
+  const handlePopState = () => {
+    window.history.pushState(null, "", window.location.href);
+  };
+  window.history.pushState(null, "", window.location.href);
+  window.addEventListener("popstate", handlePopState);
+  return () => window.removeEventListener("popstate", handlePopState);
+}, []);
   useEffect(() => {
     const fetchQuestions = async () => {
       if (!levelId) return;
@@ -217,12 +225,7 @@ const Activity = () => {
 
       {/* Top nav — back button + hearts only, no progress dots here */}
       <div className="flex items-center justify-between px-5 pt-6 pb-4">
-        <button
-          onClick={() => navigate("/")}
-          className="text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" strokeWidth={1.75} />
-        </button>
+      < div />
         <HeartsDisplay />
       </div>
 

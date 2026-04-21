@@ -38,10 +38,19 @@ const LearningPath = () => {
   const [stages, setStages] = useState<Stage[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedStage, setSelectedStage] = useState<Stage | null>(null);
-
+  const [selectedLevel, setSelectedLevel] = useState<Level | null>(null);
   // Guest gate hook
   const { checkAuth, gateOpen, setGateOpen } = useGuestGate();
 
+  useEffect(() => {
+  const handlePopState = () => {
+    window.history.pushState(null, "", window.location.href);
+  };
+  window.history.pushState(null, "", window.location.href);
+  window.addEventListener("popstate", handlePopState);
+  return () => window.removeEventListener("popstate", handlePopState);
+}, []);
+  
   useEffect(() => {
     const fetchPath = async () => {
       const { data: stagesData } = await supabase
@@ -112,12 +121,13 @@ const LearningPath = () => {
     fetchPath();
   }, [user, isGuest]);
 
-  const handleLevelClick = (level: Level) => {
-    if (level.status === "locked") return;
-    // Guest gate check — shows "Oops, you need to log in" dialog if guest
-    if (!checkAuth()) return;
-    navigate(`/activity/${level.id}`);
-  };
+    const handleLevelClick = (level: Level) => {
+      if (level.status === "locked") return;
+      if (!checkAuth()) return;
+
+      // Show warning before entering
+      setSelectedLevel(level);
+    };
 
   const handleStageClick = (stage: Stage) => {
     setSelectedStage(stage);
@@ -299,7 +309,42 @@ const LearningPath = () => {
           </DialogClose>
         </DialogContent>
       </Dialog>
+      <Dialog
+          open={!!selectedLevel}
+          onOpenChange={(open) => !open && setSelectedLevel(null)}
+        >
+          <DialogContent className="max-w-sm rounded-2xl">
+            <DialogHeader>
+              <DialogTitle>⚠️ Warning</DialogTitle>
+            </DialogHeader>
 
+            <p className="text-sm text-muted-foreground">
+              Once you enter this level, you <strong>cannot go back</strong>.
+              Make sure you're ready before starting.
+            </p>
+
+            <div className="flex gap-2 mt-4">
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => setSelectedLevel(null)}
+              >
+                Cancel
+              </Button>
+
+              <Button
+                className="w-full"
+                onClick={() => {
+                  if (selectedLevel) {
+                    navigate(`/activity/${selectedLevel.id}`);
+                  }
+                }}
+              >
+                Continue
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       {/* Guest gate dialog — "Oops, you need to log in!" */}
       <GuestGateDialog open={gateOpen} onOpenChange={setGateOpen} />
     </>
