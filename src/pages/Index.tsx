@@ -987,7 +987,7 @@ const LearnerHome = () => {
             <div className="flex items-start justify-between mt-0.5">
               <div>
                 <p className="text-2xl font-black text-white leading-none">{streak}</p>
-                <p className="text-[9px] font-bold mt-1 text-white/40">days</p>
+                <p className="text-[9px] font-bold mt-1 text-white/40">Levels</p>
               </div>
               <svg width="28" height="32" viewBox="0 0 28 32" fill="none">
                 <path
