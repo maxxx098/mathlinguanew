@@ -28,7 +28,7 @@ const MathlinguaLogo = ({ dark = false }: { dark?: boolean }) => (
     <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${dark ? "bg-primary-foreground/20" : "bg-white"}`}>
       <img src={Logo} alt="Mathlingua Logo" className="h-7 w-7 text-primary-foreground" />
     </div>
-    <span className={`text-sm font-bold tracking-tight ${dark ? "text-primary-foreground" : ""}`}>Mathlingua</span>
+    <span className={`text-sm font-bold tracking-tight ${dark ? "text-primary-foreground" : ""}`}>Sal'Tech</span>
   </div>
 );
 /* ── Dark panel watermark ── */
@@ -238,7 +238,7 @@ export default function Auth() {
           <MathlinguaLogo dark />
           <div className="space-y-4">
             <h2 className="text-5xl font-bold text-primary-foreground leading-[1.1] tracking-tight">
-              {view === "welcome" && <>Welcome to<br />Mathlingua</>}
+              {view === "welcome" && <>Welcome to<br />Sal'Tech</>}
               {view === "login" && <>Good to see<br />you again</>}
               {view === "role-select" && <>Join our<br />community</>}
               {view === "register" && <>Start your<br />journey</>}
@@ -246,9 +246,9 @@ export default function Auth() {
               {(view === "forgot-password" || view === "reset-email-sent") && <>Reset your<br />password</>}
             </h2>
             <p className="text-primary-foreground/60 max-w-sm text-sm font-medium leading-relaxed">
-              {view === "welcome" && "Mathlingua helps students master algebraic translations step by step. Join thousands of learners and teachers building math confidence every day."}
+              {view === "welcome" && "Sal'Tech helps students master algebraic translations step by step. Join thousands of learners and teachers building math confidence every day."}
               {view === "login" && "Continue where you left off. Your lessons, progress, and classes are waiting for you."}
-              {view === "role-select" && "Whether you're here to learn or to teach, Mathlingua adapts to your role and helps you achieve your goals."}
+              {view === "role-select" && "Whether you're here to learn or to teach, Sal'Tech adapts to your role and helps you achieve your goals."}
               {view === "register" && "Create your account and start translating word problems into equations with confidence and clarity."}
               {view === "verify-email" && "Verify your email to unlock all features and start mastering algebraic translations step by step."}
               {view === "forgot-password" && "Enter your email and we'll send you a reset link."}
