@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, Check, X, Lightbulb, ArrowRight, RotateCcw, Trophy, Heart } from "lucide-react";
 import { toast } from "sonner";
@@ -28,6 +29,7 @@ const Activity = () => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
+  const [typedAnswer, setTypedAnswer] = useState("");
   const [isAnswered, setIsAnswered] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [showHint, setShowHint] = useState(false);
@@ -73,18 +75,20 @@ const Activity = () => {
     fetchQuestions();
   }, [levelId]);
 
+  const normalize = (s: string) => s.trim().toLowerCase();
+
   const handleAnswer = async (answer: string) => {
     if (isAnswered) return;
+    if (!answer || !answer.trim()) return;
     setSelectedAnswer(answer);
     setIsAnswered(true);
-    const correct = answer === questions[currentIdx].correct_answer;
+    const correct = normalize(answer) === normalize(questions[currentIdx].correct_answer);
     setIsCorrect(correct);
     if (correct) {
       setScore(s => s + 1);
     } else {
       await loseLife();
       if (lives <= 1) {
-        // Will be 0 after loseLife
         toast.error("You're out of lives! Wait for them to refill.");
       }
     }
@@ -94,6 +98,7 @@ const Activity = () => {
     if (currentIdx < questions.length - 1) {
       setCurrentIdx(i => i + 1);
       setSelectedAnswer(null);
+      setTypedAnswer("");
       setIsAnswered(false);
       setIsCorrect(false);
       setShowHint(false);
@@ -243,39 +248,74 @@ const Activity = () => {
               {currentQ.question_text}
             </p>
 
-            {/* Options */}
-            <div className="space-y-3">
-              {(currentQ.options || []).map((option, idx) => {
-                let optionClass = "border bg-card hover:border-primary";
-                if (isAnswered) {
-                  if (option === currentQ.correct_answer) {
-                    optionClass = "border-2 border-success bg-success/5";
-                  } else if (option === selectedAnswer && !isCorrect) {
-                    optionClass = "border-2 border-warning bg-warning/5";
-                  } else {
-                    optionClass = "border bg-card opacity-50";
-                  }
-                }
-
-                return (
-                  <button
-                    key={idx}
-                    onClick={() => handleAnswer(option)}
-                    disabled={isAnswered}
-                    className={`w-full rounded-xl p-4 text-left font-mono text-base transition-all ${optionClass}`}
+            {/* Answer area: multiple choice OR fill-in-the-blank */}
+            {currentQ.question_type === "fill_blank" ? (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!isAnswered) handleAnswer(typedAnswer);
+                }}
+                className="space-y-3"
+              >
+                <Input
+                  autoFocus
+                  value={typedAnswer}
+                  onChange={(e) => setTypedAnswer(e.target.value)}
+                  disabled={isAnswered}
+                  placeholder="Type your answer…"
+                  maxLength={100}
+                  className={`h-14 text-center font-mono text-base ${
+                    isAnswered
+                      ? isCorrect
+                        ? "border-2 border-success bg-success/5"
+                        : "border-2 border-warning bg-warning/5"
+                      : ""
+                  }`}
+                />
+                {!isAnswered && (
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={!typedAnswer.trim()}
                   >
-                    <div className="flex items-center gap-3">
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold font-display">
-                        {String.fromCharCode(65 + idx)}
-                      </span>
-                      <span>{option}</span>
-                      {isAnswered && option === currentQ.correct_answer && <Check className="ml-auto h-5 w-5 text-success" />}
-                      {isAnswered && option === selectedAnswer && !isCorrect && option !== currentQ.correct_answer && <X className="ml-auto h-5 w-5 text-warning" />}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+                    Check Answer
+                  </Button>
+                )}
+              </form>
+            ) : (
+              <div className="space-y-3">
+                {(currentQ.options || []).map((option, idx) => {
+                  let optionClass = "border bg-card hover:border-primary";
+                  if (isAnswered) {
+                    if (isCorrect && option === currentQ.correct_answer) {
+                      optionClass = "border-2 border-success bg-success/5";
+                    } else if (!isCorrect && option === selectedAnswer) {
+                      optionClass = "border-2 border-warning bg-warning/5";
+                    } else {
+                      optionClass = "border bg-card opacity-50";
+                    }
+                  }
+
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => handleAnswer(option)}
+                      disabled={isAnswered}
+                      className={`w-full rounded-xl p-4 text-left font-mono text-base transition-all ${optionClass}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold font-display">
+                          {String.fromCharCode(65 + idx)}
+                        </span>
+                        <span>{option}</span>
+                        {isAnswered && isCorrect && option === currentQ.correct_answer && <Check className="ml-auto h-5 w-5 text-success" />}
+                        {isAnswered && !isCorrect && option === selectedAnswer && <X className="ml-auto h-5 w-5 text-warning" />}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </motion.div>
         </AnimatePresence>
       </div>
