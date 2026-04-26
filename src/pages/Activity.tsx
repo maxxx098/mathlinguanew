@@ -68,7 +68,7 @@ const Activity = () => {
     fetchQuestions();
   }, [levelId]);
 
-  const normalize = (s: string) => s.trim().toLowerCase();
+  const normalize = (s: string) => s.toLowerCase().replace(/\s+/g, "");
 
   const handleAnswer = async (answer: string) => {
     if (isAnswered) return;
