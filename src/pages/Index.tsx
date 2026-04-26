@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import LearningPath from "@/components/LearningPath";
 import Teacher from "@/assets/teacher.png";
-import BG from "@/assets/bg.png";
+import BG from "@/assets/bg.svg";
 import teacherBG from "@/assets/teacherBG.png";
 
 /* ─────────────────────────────────────────────────────────────────────────────
