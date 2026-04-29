@@ -23,7 +23,7 @@ const LivesContext = createContext<LivesContextType>({
 export const useLives = () => useContext(LivesContext);
 
 const MAX_LIVES = 5;
-const REFILL_INTERVAL_MS = 0 * 60 * 1000; // 30 minutes per heart
+const REFILL_INTERVAL_MS = 10* 60 * 1000; // 10 minutes per heart
 
 const getRefillState = (currentLives: number, lastLost: string | null, now = Date.now()) => {
   if (currentLives >= MAX_LIVES || !lastLost) {
