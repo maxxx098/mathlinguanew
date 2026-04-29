@@ -180,108 +180,64 @@ const ClassCard = ({
 );
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   Assignment Deadline Card
-───────────────────────────────────────────────────────────────────────────── */
-interface AssignmentWithDeadline {
-  id: string;
-  title: string;
-  className: string;
-  daysLeft: number;
-}
-
-const AssignmentDeadlineCard = ({ items }: { items: AssignmentWithDeadline[] }) => {
-  const getUrgency = (days: number) => {
-    if (days <= 0) return { color: "#dc2626", bg: "#fef2f2", label: "Overdue", icon: <AlertTriangle className="h-3.5 w-3.5" /> };
-    if (days <= 2) return { color: "#dc2626", bg: "#fef2f2", label: `${days}d left`, icon: <AlertTriangle className="h-3.5 w-3.5" /> };
-    if (days <= 7) return { color: "#d97706", bg: "#fffbeb", label: `${days}d left`, icon: <Clock className="h-3.5 w-3.5" /> };
-    return { color: "#2d7a45", bg: "#f0fdf4", label: `${days}d left`, icon: <CheckCircle2 className="h-3.5 w-3.5" /> };
-  };
-
-  return (
-    <div className="rounded-2xl overflow-hidden bg-card border border-border">
-      <div className="px-4 pt-4 pb-2">
-        <p className="font-black text-foreground text-sm">Assignments</p>
-        <p className="text-[10px] text-muted-foreground font-bold mt-0.5">Due within 2 days</p>
-      </div>
-      {items.length === 0 ? (
-        <div className="px-4 pb-4 text-center">
-          <p className="text-xs text-muted-foreground">No assignments due soon</p>
-        </div>
-      ) : (
-        <div className="divide-y divide-border">
-          {items.slice(0, 5).map((a) => {
-            const u = getUrgency(a.daysLeft);
-            return (
-              <div key={a.id} className="flex items-center justify-between px-4 py-3 gap-2">
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-extrabold text-foreground truncate">{a.title || "Assignment"}</p>
-                  <p className="text-[10px] text-muted-foreground font-semibold truncate">{a.className}</p>
-                </div>
-                <div
-                  className="flex items-center gap-1 px-2 py-1 rounded-full flex-shrink-0"
-                  style={{ background: u.bg, color: u.color }}
-                >
-                  {u.icon}
-                  <span className="text-[9px] font-black">{u.label}</span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-};
-
-/* ─────────────────────────────────────────────────────────────────────────────
    TEACHER DASHBOARD
 ───────────────────────────────────────────────────────────────────────────── */
 const TeacherDashboard = () => {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
-  const [stats, setStats] = useState({ classCount: 0, studentCount: 0, assignmentCount: 0 });
+  const [stats, setStats] = useState({ classCount: 0, studentCount: 0 });
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState("Overview");
   const [classes, setClasses] = useState<{
     id: string; name: string; class_code: string;
-    studentCount: number; assignmentCount: number; avgScore: number;
-  }[]>([]);
-  const [assignments, setAssignments] = useState<{
-    id: string; title: string; description: string | null;
-    due_date: string | null; class_name: string; submissions: number; total_students: number;
+    studentCount: number; avgScore: number;
   }[]>([]);
   const [needsAttention, setNeedsAttention] = useState<{ name: string; avgScore: number; userId: string }[]>([]);
 
   useEffect(() => {
     const fetchTeacherStats = async () => {
       if (!user) return;
-      const [classesRes, assignmentsRes] = await Promise.all([
-        supabase.from("classes").select("id, name, class_code").eq("teacher_id", user.id),
-        supabase.from("assignments").select("id, class_id, title, description, due_date").eq("teacher_id", user.id).order("created_at", { ascending: false }),
-      ]);
+      const classesRes = await supabase
+        .from("classes")
+        .select("id, name, class_code")
+        .eq("teacher_id", user.id);
+
       const allClasses = classesRes.data || [];
-      const allAssignments = assignmentsRes.data || [];
       const classIds = allClasses.map((c: any) => c.id);
       let classDetails: typeof classes = [];
 
       if (classIds.length > 0) {
-        const { data: members } = await supabase.from("class_members").select("user_id, class_id").in("class_id", classIds);
+        const { data: members } = await supabase
+          .from("class_members")
+          .select("user_id, class_id")
+          .in("class_id", classIds);
+
         const totalStudents = members?.length || 0;
         const memberIds = [...new Set((members || []).map((m: any) => m.user_id))];
         let progressByUser: Record<string, { score: number; total: number }> = {};
 
         if (memberIds.length > 0) {
           const { data: progress } = await supabase
-            .from("user_progress").select("user_id, score, total_questions, completed")
-            .in("user_id", memberIds).eq("completed", true);
+            .from("user_progress")
+            .select("user_id, score, total_questions, completed")
+            .in("user_id", memberIds)
+            .eq("completed", true);
+
           (progress || []).forEach((p: any) => {
             if (!progressByUser[p.user_id]) progressByUser[p.user_id] = { score: 0, total: 0 };
             progressByUser[p.user_id].score += (p.score || 0);
             progressByUser[p.user_id].total += (p.total_questions || 0);
           });
 
-          const { data: profs } = await supabase.from("profiles").select("user_id, display_name").in("user_id", memberIds);
-          const profMap = Object.fromEntries((profs || []).map((p: any) => [p.user_id, p.display_name || "Unknown"]));
+          const { data: profs } = await supabase
+            .from("profiles")
+            .select("user_id, display_name")
+            .in("user_id", memberIds);
+
+          const profMap = Object.fromEntries(
+            (profs || []).map((p: any) => [p.user_id, p.display_name || "Unknown"])
+          );
+
           const struggling: typeof needsAttention = [];
           memberIds.forEach((uid) => {
             const prog = progressByUser[uid];
@@ -290,36 +246,28 @@ const TeacherDashboard = () => {
           });
           setNeedsAttention(struggling.slice(0, 5));
 
-          const assignmentDetails = await Promise.all(
-            allAssignments.map(async (a: any) => {
-              const { data: subs } = await supabase.from("assignment_submissions").select("id").eq("assignment_id", a.id);
-              const cls = allClasses.find((c: any) => c.id === a.class_id);
-              const clsMembers = (members || []).filter((m: any) => m.class_id === a.class_id);
-              return {
-                id: a.id, title: a.title, description: a.description, due_date: a.due_date,
-                class_name: cls?.name || "Unknown",
-                submissions: subs?.length || 0,
-                total_students: clsMembers.length,
-              };
-            })
-          );
-          setAssignments(assignmentDetails);
-
           const { data: feed } = await supabase
-            .from("class_feed").select("*")
-            .in("class_id", classIds).order("created_at", { ascending: false }).limit(5);
+            .from("class_feed")
+            .select("*")
+            .in("class_id", classIds)
+            .order("created_at", { ascending: false })
+            .limit(5);
+
           if (feed?.length) {
             const uids = [...new Set(feed.map((f: any) => f.user_id))];
-            const { data: feedProfs } = await supabase.from("profiles").select("user_id, display_name").in("user_id", uids);
-            const map = Object.fromEntries((feedProfs || []).map((p: any) => [p.user_id, p.display_name]));
+            const { data: feedProfs } = await supabase
+              .from("profiles")
+              .select("user_id, display_name")
+              .in("user_id", uids);
+            const map = Object.fromEntries(
+              (feedProfs || []).map((p: any) => [p.user_id, p.display_name])
+            );
             setRecentActivity(feed.map((f: any) => ({ ...f, display_name: map[f.user_id] || "Unknown" })));
           }
         }
 
-        // ✅ MOVED HERE — always runs when classIds exist, even with 0 students
         classDetails = allClasses.map((c: any) => {
           const classMembers = (members || []).filter((m: any) => m.class_id === c.id);
-          const classAssigns = allAssignments.filter((a: any) => a.class_id === c.id);
           let totalPct = 0;
           let countWithProgress = 0;
           classMembers.forEach((m: any) => {
@@ -332,14 +280,13 @@ const TeacherDashboard = () => {
           const avgScore = countWithProgress > 0 ? Math.round(totalPct / countWithProgress) : 0;
           return {
             id: c.id, name: c.name, class_code: c.class_code,
-            studentCount: classMembers.length, assignmentCount: classAssigns.length, avgScore,
+            studentCount: classMembers.length, avgScore,
           };
         });
 
-        //  MOVED HERE — always runs when classIds exist
-        setStats({ classCount: allClasses.length, studentCount: totalStudents, assignmentCount: allAssignments.length });
+        setStats({ classCount: allClasses.length, studentCount: totalStudents });
       } else {
-        setStats({ classCount: 0, studentCount: 0, assignmentCount: allAssignments.length });
+        setStats({ classCount: 0, studentCount: 0 });
       }
 
       setClasses(classDetails);
@@ -348,22 +295,6 @@ const TeacherDashboard = () => {
   }, [user]);
 
   const displayName = profile?.display_name || profile?.first_name || "Teacher";
-
-  const parseValidDate = (value: string | null | undefined) => {
-    if (!value) return null;
-    const parsed = new Date(value);
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
-  };
-
-  const getAssignmentDueLabel = (value: string | null | undefined) => {
-    const dueDate = parseValidDate(value);
-    if (!dueDate) return null;
-    const daysLeft = Math.ceil((dueDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-    if (daysLeft < 0) return "Overdue";
-    if (daysLeft === 0) return "Due today";
-    if (daysLeft === 1) return "1d left";
-    return `${daysLeft}d left`;
-  };
 
   const timeAgo = (d: string) => {
     const m = Math.floor((Date.now() - new Date(d).getTime()) / 60000);
@@ -374,7 +305,9 @@ const TeacherDashboard = () => {
   };
 
   const classCardColors = ["#27ff72", "#0d9488", "#7c3aed", "#d97706", "#2d7a45", "#dc2626"];
-  const overallAvg = classes.length > 0 ? Math.round(classes.reduce((s, c) => s + c.avgScore, 0) / classes.length) : 0;
+  const overallAvg = classes.length > 0
+    ? Math.round(classes.reduce((s, c) => s + c.avgScore, 0) / classes.length)
+    : 0;
 
   const renderOverview = () => (
     <div className="space-y-5">
@@ -413,22 +346,9 @@ const TeacherDashboard = () => {
                   metric={c.avgScore > 0 ? `${c.avgScore}%` : undefined}
                   metricLabel={c.avgScore > 0 ? "CLASS AVG" : undefined}
                   bg={classCardColors[i % classCardColors.length]} fg="#ffffff"
-                  progressBar={c.assignmentCount > 0} progressVal={c.avgScore}
-                  progressLabel={`${c.assignmentCount} assignment${c.assignmentCount !== 1 ? "s" : ""}`}
-                  progressRight={c.avgScore > 0 ? `${c.avgScore}%` : "—"}
                 />
               </div>
             ))}
-            <AssignmentDeadlineCard
-              items={assignments
-                .map((a) => {
-                  const d = parseValidDate(a.due_date);
-                  const daysLeft = d ? Math.ceil((d.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : 999;
-                  return { id: a.id, title: a.title, className: a.class_name, daysLeft };
-                })
-                .filter((a) => a.daysLeft <= 14)
-                .sort((a, b) => a.daysLeft - b.daysLeft)}
-            />
             {needsAttention.length > 0 && (
               <div className="rounded-2xl p-4 flex flex-col gap-2" style={{ background: "#111827" }}>
                 <div className="flex justify-between items-start">
@@ -527,11 +447,6 @@ const TeacherDashboard = () => {
                   {c.avgScore > 0 ? `${c.avgScore}% avg` : "No data"}
                 </span>
               </div>
-              <div className="flex items-center gap-3 mt-2">
-                <span className="text-[10px] font-bold text-muted-foreground flex items-center gap-1">
-                  <ClipboardList className="h-3 w-3" /> {c.assignmentCount} assignments
-                </span>
-              </div>
             </div>
           ))}
         </div>
@@ -554,58 +469,6 @@ const TeacherDashboard = () => {
               </div>
             ))}
           </div>
-        </div>
-      )}
-    </div>
-  );
-
-  const renderAssignments = () => (
-    <div className="space-y-5">
-      <div className="flex justify-between items-center">
-        <p className="font-black text-foreground text-sm">Assignments</p>
-        <button onClick={() => navigate("/class")} className="flex items-center gap-1 text-xs font-black text-primary">
-          <Plus className="h-3.5 w-3.5" /> New
-        </button>
-      </div>
-      {assignments.length === 0 ? (
-        <div className="rounded-2xl border border-border bg-card p-8 text-center">
-          <ClipboardList className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-          <p className="text-sm font-bold text-foreground mb-1">No assignments yet</p>
-          <p className="text-xs text-muted-foreground mb-3">Create assignments from your class page</p>
-          <button onClick={() => navigate("/class")} className="px-4 py-2 rounded-full text-xs font-black" style={{ background: "#27ff72", color: "#0a0a0a" }}>
-            Go to Classes
-          </button>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {assignments.map((a) => {
-            const pct = a.total_students > 0 ? Math.round((a.submissions / a.total_students) * 100) : 0;
-            const dueDate = parseValidDate(a.due_date);
-            const dueLabel = getAssignmentDueLabel(a.due_date);
-            return (
-              <div key={a.id} className="rounded-2xl p-4 bg-card border border-border">
-                <div className="flex items-start justify-between mb-2 gap-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-extrabold text-sm text-foreground truncate">{a.title}</p>
-                    <p className="text-[10px] font-bold text-muted-foreground">{a.class_name}</p>
-                  </div>
-                  {dueDate && (
-                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                      <Badge variant="outline" className="text-[9px]">
-                        Due {dueDate.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-                      </Badge>
-                      {dueLabel && <span className="text-[10px] font-bold text-muted-foreground">{dueLabel}</span>}
-                    </div>
-                  )}
-                </div>
-                {a.description && <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{a.description}</p>}
-                <div className="flex items-center gap-3">
-                  <div className="flex-1"><Progress value={pct} className="h-1.5" /></div>
-                  <span className="text-[10px] font-black text-muted-foreground">{a.submissions}/{a.total_students} submitted</span>
-                </div>
-              </div>
-            );
-          })}
         </div>
       )}
     </div>
@@ -655,7 +518,7 @@ const TeacherDashboard = () => {
             </motion.p>
           </div>
 
-          <div className="relative px-5 pb-0 pt-6 grid grid-cols-3 gap-2">
+          <div className="relative px-5 pb-0 pt-6 grid grid-cols-2 gap-2">
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)" }}>
               <p className="text-[9px] font-black uppercase tracking-[0.12em] text-white/50">Classes</p>
               <p className="text-2xl font-black text-white mt-0.5 leading-none">{stats.classCount}</p>
@@ -665,11 +528,6 @@ const TeacherDashboard = () => {
               <p className="text-[9px] font-black uppercase tracking-[0.12em]" style={{ color: "rgba(39,255,114,0.7)" }}>Avg Score</p>
               <p className="text-2xl font-black leading-none mt-0.5" style={{ color: "#27ff72" }}>{overallAvg}%</p>
               <p className="text-[9px] font-bold mt-1" style={{ color: "rgba(39,255,114,0.5)" }}>class avg</p>
-            </motion.div>
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.42 }} className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)" }}>
-              <p className="text-[9px] font-black uppercase tracking-[0.12em] text-white/50">Tasks</p>
-              <p className="text-2xl font-black text-white mt-0.5 leading-none">{stats.assignmentCount}</p>
-              <p className="text-[9px] font-bold mt-1 text-white/40">assignments</p>
             </motion.div>
           </div>
 
@@ -894,30 +752,9 @@ const LearnerHome = () => {
                 <p className="text-[9px] font-bold mt-1 text-white/40">/ {stats.total}</p>
               </div>
               <svg width="28" height="32" viewBox="0 0 28 32" fill="none">
-                <path
-                  d="M2,10 Q5,4 8,10 Q11,16 14,10 Q17,4 20,10 Q23,16 26,10"
-                  stroke="rgba(255,255,255,0.3)"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  fill="none"
-                />
-                <path
-                  d="M2,18 Q5,12 8,18 Q11,24 14,18 Q17,12 20,18 Q23,24 26,18"
-                  stroke="rgba(255,255,255,0.15)"
-                  strokeWidth="1.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  fill="none"
-                />
-                <path
-                  d="M2,26 Q5,20 8,26 Q11,32 14,26 Q17,20 20,26 Q23,32 26,26"
-                  stroke="rgba(255,255,255,0.06)"
-                  strokeWidth="1"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  fill="none"
-                />
+                <path d="M2,10 Q5,4 8,10 Q11,16 14,10 Q17,4 20,10 Q23,16 26,10" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                <path d="M2,18 Q5,12 8,18 Q11,24 14,18 Q17,12 20,18 Q23,24 26,18" stroke="rgba(255,255,255,0.15)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                <path d="M2,26 Q5,20 8,26 Q11,32 14,26 Q17,20 20,26 Q23,32 26,26" stroke="rgba(255,255,255,0.06)" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" fill="none" />
               </svg>
             </div>
           </motion.div>
@@ -936,30 +773,9 @@ const LearnerHome = () => {
                 <p className="text-[9px] font-bold mt-1 text-white/40">Levels</p>
               </div>
               <svg width="28" height="32" viewBox="0 0 28 32" fill="none">
-                <path
-                  d="M2,10 Q5,4 8,10 Q11,16 14,10 Q17,4 20,10 Q23,16 26,10"
-                  stroke="rgba(255,159,67,0.45)"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  fill="none"
-                />
-                <path
-                  d="M2,18 Q5,12 8,18 Q11,24 14,18 Q17,12 20,18 Q23,24 26,18"
-                  stroke="rgba(255,159,67,0.22)"
-                  strokeWidth="1.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  fill="none"
-                />
-                <path
-                  d="M2,26 Q5,20 8,26 Q11,32 14,26 Q17,20 20,26 Q23,32 26,26"
-                  stroke="rgba(255,159,67,0.08)"
-                  strokeWidth="1"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  fill="none"
-                />
+                <path d="M2,10 Q5,4 8,10 Q11,16 14,10 Q17,4 20,10 Q23,16 26,10" stroke="rgba(255,159,67,0.45)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                <path d="M2,18 Q5,12 8,18 Q11,24 14,18 Q17,12 20,18 Q23,24 26,18" stroke="rgba(255,159,67,0.22)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                <path d="M2,26 Q5,20 8,26 Q11,32 14,26 Q17,20 20,26 Q23,32 26,26" stroke="rgba(255,159,67,0.08)" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" fill="none" />
               </svg>
             </div>
           </motion.div>
@@ -971,79 +787,33 @@ const LearnerHome = () => {
             transition={{ delay: 0.42 }}
             className="stat-card-accent rounded-xl p-3 overflow-hidden"
           >
-            <p
-              className="text-[9px] font-black uppercase tracking-[0.12em]"
-              style={{ color: "rgba(39,255,114,0.65)" }}
-            >
-              Stage
-            </p>
+            <p className="text-[9px] font-black uppercase tracking-[0.12em]" style={{ color: "rgba(39,255,114,0.65)" }}>Stage</p>
             <div className="flex items-start justify-between mt-0.5">
               <div>
-                <p
-                  className="text-2xl font-black leading-none"
-                  style={{ color: "#27ff72" }}
-                >
-                  {currentStageIndex ?? "✓"}
-                </p>
-                <p
-                  className="text-[9px] font-bold mt-1 truncate"
-                  style={{ color: "rgba(39,255,114,0.55)" }}
-                >
-                  {currentStageName ?? "Done!"}
-                </p>
+                <p className="text-2xl font-black leading-none" style={{ color: "#27ff72" }}>{currentStageIndex ?? "✓"}</p>
+                <p className="text-[9px] font-bold mt-1 truncate" style={{ color: "rgba(39,255,114,0.55)" }}>{currentStageName ?? "Done!"}</p>
               </div>
               <svg width="28" height="32" viewBox="0 0 28 32" fill="none">
-                <path
-                  d="M2,10 Q5,4 8,10 Q11,16 14,10 Q17,4 20,10 Q23,16 26,10"
-                  stroke="rgba(39,255,114,0.4)"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  fill="none"
-                />
-                <path
-                  d="M2,18 Q5,12 8,18 Q11,24 14,18 Q17,12 20,18 Q23,24 26,18"
-                  stroke="rgba(39,255,114,0.18)"
-                  strokeWidth="1.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  fill="none"
-                />
-                <path
-                  d="M2,26 Q5,20 8,26 Q11,32 14,26 Q17,20 20,26 Q23,32 26,26"
-                  stroke="rgba(39,255,114,0.07)"
-                  strokeWidth="1"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  fill="none"
-                />
+                <path d="M2,10 Q5,4 8,10 Q11,16 14,10 Q17,4 20,10 Q23,16 26,10" stroke="rgba(39,255,114,0.4)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                <path d="M2,18 Q5,12 8,18 Q11,24 14,18 Q17,12 20,18 Q23,24 26,18" stroke="rgba(39,255,114,0.18)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                <path d="M2,26 Q5,20 8,26 Q11,32 14,26 Q17,20 20,26 Q23,32 26,26" stroke="rgba(39,255,114,0.07)" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" fill="none" />
               </svg>
             </div>
           </motion.div>
 
-          {/* HEARTS — animated ECG beat line */}
+          {/* HEARTS */}
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.48 }}
             className="stat-card-hearts rounded-xl p-3 overflow-hidden"
           >
-            <p
-              className="text-[9px] font-black uppercase tracking-[0.12em]"
-              style={{ color: "rgba(248,113,113,0.65)" }}
-            >
-              Hearts
-            </p>
+            <p className="text-[9px] font-black uppercase tracking-[0.12em]" style={{ color: "rgba(248,113,113,0.65)" }}>Hearts</p>
             <div className="flex items-start justify-between mt-0.5">
               <div>
                 <p className="text-2xl font-black text-white leading-none">{lives}</p>
-                <p
-                  className="text-[9px] font-bold mt-1"
-                  style={{ color: "rgba(248,113,113,0.55)" }}
-                >
-                  {showTimer && nextRefillSeconds !== null
-                    ? formatTime(nextRefillSeconds)
-                    : "remaining"}
+                <p className="text-[9px] font-bold mt-1" style={{ color: "rgba(248,113,113,0.55)" }}>
+                  {showTimer && nextRefillSeconds !== null ? formatTime(nextRefillSeconds) : "remaining"}
                 </p>
               </div>
               <HeartbeatSVG />
