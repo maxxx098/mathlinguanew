@@ -1,8 +1,4 @@
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { BookOpen, Target, Trophy, Users, Heart, ArrowRight, ArrowLeft, Shield } from "lucide-react";
 
 interface OnboardingProps {
   onComplete: () => void;
@@ -10,168 +6,431 @@ interface OnboardingProps {
 
 const slides = [
   {
-    icon: BookOpen,
-    iconBg: "bg-primary/10 text-primary",
-    title: "Welcome to Math lingua! 🎓",
-    description: "Master algebraic translations step by step through fun, gamified lessons designed to make math enjoyable.",
+    num: "01",
+    title: "Welcome to Sal'Tech!",
+    desc: `Where "salin" (to translate) meets technology—helping you master algebraic translations step by step through fun, gamified lessons that turn real-life situations into clear, engaging mathematical expressions.`,
   },
   {
-    icon: Target,
-    iconBg: "bg-success/10 text-success",
-    title: "Learn at Your Pace 🎯",
-    description: "Progress through stages and levels with multiple choice, fill-in-the-blank, and expression-building questions.",
+    num: "02",
+    title: "Learn at Your Pace",
+    desc: "Progress through stages and levels with multiple-choice and identification tasks, where you'll either select the correct answer or create your own algebraic translations.",
   },
   {
-    icon: Heart,
-    iconBg: "bg-destructive/10 text-destructive",
-    title: "Lives & Daily Challenges ❤️",
-    description: "You have 5 lives that regenerate over time. Complete daily challenges to test your skills and earn bonus points!",
+    num: "03",
+    title: "Lives & Daily Challenges",
+    desc: "Five lives regenerate over time. Complete daily challenges to test your skills and earn bonus points at the end of each session.",
   },
   {
-    icon: Trophy,
-    iconBg: "bg-warning/10 text-warning",
-    title: "Earn Badges & Track Progress 🏆",
-    description: "Unlock achievements as you learn. From First Steps to Master Mind — collect them all!",
+    num: "04",
+    title: "Earn Badges & Track Progress",
+    desc: "Unlock achievements as you learn. From First Steps to Master Mind — each badge marks a real milestone in your journey.",
   },
   {
-    icon: Users,
-    iconBg: "bg-primary/10 text-primary",
-    title: "Join a Class 👥",
-    description: "Connect with your teacher and classmates. See how you rank on the progress board and cheer each other on!",
+    num: "05",
+    title: "Join a Class",
+    desc: "Connect with your teacher and classmates. See how you progress alongside peers and celebrate each other's achievements.",
   },
 ];
 
-const Onboarding = ({ onComplete }: OnboardingProps) => {
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const [acceptedTerms, setAcceptedTerms] = useState(false);
-  const isLastSlide = currentSlide === slides.length;
-  const totalSteps = slides.length + 1; // slides + terms page
+const TOTAL = slides.length + 1;
 
-  const handleNext = () => {
-    if (isLastSlide && acceptedTerms) {
+const Onboarding = ({ onComplete }: OnboardingProps) => {
+  const [current, setCurrent] = useState(0);
+  const [accepted, setAccepted] = useState(false);
+
+  const isTerms = current === slides.length;
+  const slide = slides[current];
+
+  const goNext = () => {
+    if (isTerms && accepted) {
       onComplete();
-    } else if (!isLastSlide) {
-      setCurrentSlide(prev => prev + 1);
+    } else if (!isTerms) {
+      setCurrent((p) => p + 1);
     }
   };
 
-  const handleBack = () => {
-    if (currentSlide > 0) setCurrentSlide(prev => prev - 1);
+  const goBack = () => {
+    if (current > 0) setCurrent((p) => p - 1);
   };
 
-  const slide = slides[currentSlide];
-  const Icon = slide?.icon;
+  const skipToTerms = () => setCurrent(slides.length);
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
-      <div className="w-full max-w-md">
-        {/* Progress dots */}
-        <div className="flex justify-center gap-1.5 mb-8">
-          {Array.from({ length: totalSteps }).map((_, i) => (
+    <div
+      style={{
+        fontFamily: "var(--font-display, 'Montserrat', sans-serif)",
+        background: "hsl(var(--background))",
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "48px 24px",
+      }}
+    >
+      <div
+        style={{
+          width: "100%",
+          maxWidth: 420,
+          background: "hsl(var(--card))",
+          border: "1px solid hsl(var(--border))",
+          padding: "48px 40px 40px",
+          position: "relative",
+          overflow: "hidden",
+          borderRadius: 0,
+        }}
+      >
+        {/* Top accent line */}
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 3,
+            background: "hsl(var(--primary))",
+          }}
+        />
+
+        {/* Step row */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 40,
+          }}
+        >
+          <span
+            style={{
+              fontSize: "0.6875rem",
+              fontWeight: 600,
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              color: "hsl(var(--primary))",
+            }}
+          >
+            Step {current + 1} of {TOTAL}
+          </span>
+
+          {/* Progress ticks */}
+          <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+            {Array.from({ length: TOTAL }).map((_, i) => (
+              <div
+                key={i}
+                style={{
+                  height: 2,
+                  width: i === current ? 26 : 14,
+                  background:
+                    i < current
+                      ? "hsl(var(--primary) / 0.45)"
+                      : i === current
+                      ? "hsl(var(--primary))"
+                      : "hsl(var(--border))",
+                  transition: "background 0.3s, width 0.3s",
+                }}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Slide content */}
+        {!isTerms && slide ? (
+          <div key={current} style={{ animation: "obIn 0.3s cubic-bezier(0.16,1,0.3,1) both" }}>
             <div
-              key={i}
-              className={`h-1.5 rounded-full transition-all duration-300 ${
-                i === currentSlide ? "w-6 bg-primary" : i < currentSlide ? "w-1.5 bg-primary/50" : "w-1.5 bg-muted"
-              }`}
+              style={{
+                fontFamily: "'Cormorant Garamond', Georgia, serif",
+                fontSize: "5rem",
+                fontWeight: 300,
+                fontStyle: "italic",
+                lineHeight: 1,
+                color: "hsl(var(--primary))",
+                opacity: 0.18,
+                marginBottom: 8,
+                letterSpacing: "-0.02em",
+                userSelect: "none",
+              }}
+            >
+              {slide.num}
+            </div>
+
+            <h2
+              style={{
+                fontFamily: "'Cormorant Garamond', Georgia, serif",
+                fontSize: "clamp(1.5rem, 4vw, 2rem)",
+                fontWeight: 400,
+                fontStyle: "italic",
+                lineHeight: 1.2,
+                color: "hsl(var(--foreground))",
+                marginBottom: 14,
+              }}
+            >
+              {slide.title}
+            </h2>
+
+            <div
+              style={{
+                width: 32,
+                height: 1.5,
+                background: "hsl(var(--primary))",
+                margin: "16px 0 20px",
+                opacity: 0.5,
+              }}
             />
-          ))}
-        </div>
 
-        <AnimatePresence mode="wait">
-          {!isLastSlide && slide ? (
-            <motion.div
-              key={currentSlide}
-              initial={{ x: 40, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: -40, opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="space-y-8 text-center"
+            <p
+              style={{
+                fontSize: "0.875rem",
+                lineHeight: 1.7,
+                color: "hsl(var(--muted-foreground))",
+              }}
             >
-              <div className="space-y-5">
-                <div className={`mx-auto flex h-20 w-20 items-center justify-center rounded-2xl ${slide.iconBg} shadow-lg`}>
-                  {Icon && <Icon className="h-10 w-10" />}
-                </div>
-                <div className="space-y-3">
-                  <h2 className="font-display text-2xl font-bold tracking-tight">{slide.title}</h2>
-                  <p className="text-muted-foreground leading-relaxed">{slide.description}</p>
-                </div>
+              {slide.desc}
+            </p>
+          </div>
+        ) : (
+          /* Terms slide */
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            <div>
+              <div
+                style={{
+                  fontFamily: "'Cormorant Garamond', Georgia, serif",
+                  fontSize: "5rem",
+                  fontWeight: 300,
+                  fontStyle: "italic",
+                  lineHeight: 1,
+                  color: "hsl(var(--primary))",
+                  opacity: 0.18,
+                  marginBottom: 8,
+                  userSelect: "none",
+                }}
+              >
+                06
               </div>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="terms"
-              initial={{ x: 40, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: -40, opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="space-y-6"
+              <h2
+                style={{
+                  fontFamily: "'Cormorant Garamond', Georgia, serif",
+                  fontSize: "clamp(1.5rem, 4vw, 2rem)",
+                  fontWeight: 400,
+                  fontStyle: "italic",
+                  color: "hsl(var(--foreground))",
+                  marginBottom: 4,
+                }}
+              >
+                Terms & Privacy
+              </h2>
+              <div
+                style={{
+                  width: 32,
+                  height: 1.5,
+                  background: "hsl(var(--primary))",
+                  opacity: 0.5,
+                  margin: "16px 0 6px",
+                }}
+              />
+              <p style={{ fontSize: "0.8125rem", color: "hsl(var(--muted-foreground))" }}>
+                Please review and accept before continuing.
+              </p>
+            </div>
+
+            {/* Scrollable terms */}
+            <div
+              style={{
+                border: "1px solid hsl(var(--border))",
+                padding: 20,
+                maxHeight: 156,
+                overflowY: "auto",
+                background: "hsl(var(--accent))",
+              }}
             >
-              <div className="text-center space-y-3">
-                <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-lg">
-                  <Shield className="h-10 w-10" />
-                </div>
-                <h2 className="font-display text-2xl font-bold tracking-tight">Terms & Privacy</h2>
-                <p className="text-muted-foreground text-sm">Please review and accept before continuing</p>
+              <p
+                style={{
+                  fontSize: "0.6875rem",
+                  fontWeight: 600,
+                  letterSpacing: "0.09em",
+                  textTransform: "uppercase",
+                  color: "hsl(var(--foreground))",
+                  marginBottom: 8,
+                }}
+              >
+                Terms of Use
+              </p>
+              <ul style={{ listStyle: "none", padding: 0 }}>
+                {[
+                  "Sal'Tech is an educational platform for learning algebraic concepts.",
+                  "You agree to use the app responsibly and respect other community members.",
+                  "Your progress and data are stored securely for a personalised experience.",
+                  "Do not share your account credentials with others.",
+                ].map((item, i) => (
+                  <li
+                    key={i}
+                    style={{
+                      fontSize: "0.8125rem",
+                      lineHeight: 1.6,
+                      color: "hsl(var(--muted-foreground))",
+                      padding: "2px 0 2px 14px",
+                      position: "relative",
+                    }}
+                  >
+                    <span style={{ position: "absolute", left: 0, color: "hsl(var(--border))" }}>—</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+
+              <p
+                style={{
+                  fontSize: "0.6875rem",
+                  fontWeight: 600,
+                  letterSpacing: "0.09em",
+                  textTransform: "uppercase",
+                  color: "hsl(var(--foreground))",
+                  marginTop: 14,
+                  marginBottom: 8,
+                }}
+              >
+                Privacy Policy
+              </p>
+              <ul style={{ listStyle: "none", padding: 0 }}>
+                {[
+                  "We collect your name, email, and learning progress to improve your experience.",
+                  "Your data is never sold to third parties.",
+                  "Teachers can view the progress of students in their classes.",
+                  "Manage your privacy settings in your profile at any time.",
+                ].map((item, i) => (
+                  <li
+                    key={i}
+                    style={{
+                      fontSize: "0.8125rem",
+                      lineHeight: 1.6,
+                      color: "hsl(var(--muted-foreground))",
+                      padding: "2px 0 2px 14px",
+                      position: "relative",
+                    }}
+                  >
+                    <span style={{ position: "absolute", left: 0, color: "hsl(var(--border))" }}>—</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Accept checkbox */}
+            <div
+              onClick={() => setAccepted((a) => !a)}
+              style={{
+                display: "flex",
+                gap: 12,
+                alignItems: "flex-start",
+                padding: "14px 16px",
+                border: `1px solid ${accepted ? "hsl(var(--primary))" : "hsl(var(--border))"}`,
+                cursor: "pointer",
+                background: "hsl(var(--card))",
+                transition: "border-color 0.2s",
+              }}
+            >
+              <div
+                style={{
+                  width: 17,
+                  height: 17,
+                  border: `1.5px solid ${accepted ? "hsl(var(--primary))" : "hsl(var(--border))"}`,
+                  flexShrink: 0,
+                  marginTop: 1,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: accepted ? "hsl(var(--primary))" : "transparent",
+                  transition: "border-color 0.2s, background 0.2s",
+                  borderRadius: 0,
+                }}
+              >
+                {accepted && (
+                  <svg width="10" height="8" fill="none" stroke="white" strokeWidth="2.2" viewBox="0 0 10 8">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M1 4L3.5 6.5L9 1" />
+                  </svg>
+                )}
               </div>
-
-              <div className="rounded-xl border bg-card p-4 space-y-3 max-h-48 overflow-y-auto text-left">
-                <h3 className="font-semibold text-sm">Terms of Use</h3>
-                <ul className="text-xs text-muted-foreground space-y-2 list-disc pl-4">
-                  <li>Mathhlingua is an educational platform for learning algebraic concepts.</li>
-                  <li>You agree to use the app responsibly and respect other users in the community.</li>
-                  <li>Your progress and data are stored securely to provide a personalized learning experience.</li>
-                  <li>Do not share your account credentials with others.</li>
-                </ul>
-                <h3 className="font-semibold text-sm mt-3">Privacy Policy</h3>
-                <ul className="text-xs text-muted-foreground space-y-2 list-disc pl-4">
-                  <li>We collect your name, email, and learning progress to improve your experience.</li>
-                  <li>Your data is never sold to third parties.</li>
-                  <li>Teachers can view progress of students in their classes.</li>
-                  <li>You can manage your privacy settings in your profile at any time.</li>
-                </ul>
-              </div>
-
-              <div className="flex items-start gap-3 rounded-xl border bg-card p-4">
-                <Checkbox
-                  id="terms"
-                  checked={acceptedTerms}
-                  onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
-                  className="mt-0.5"
-                />
-                <label htmlFor="terms" className="text-sm cursor-pointer leading-relaxed">
-                  I accept the <span className="font-semibold text-primary">Terms of Use</span> and{" "}
-                  <span className="font-semibold text-primary">Privacy Policy</span>
-                </label>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Navigation buttons */}
-        <div className="mt-8 flex gap-3">
-          {currentSlide > 0 && (
-            <Button variant="outline" size="lg" onClick={handleBack} className="gap-1">
-              <ArrowLeft className="h-4 w-4" /> Back
-            </Button>
-          )}
-          <Button
-            size="lg"
-            className="flex-1 gap-2 font-semibold"
-            onClick={handleNext}
-            disabled={isLastSlide && !acceptedTerms}
-          >
-            {isLastSlide ? "Get Started" : "Next"} {!isLastSlide && <ArrowRight className="h-4 w-4" />}
-          </Button>
-        </div>
-
-        {!isLastSlide && (
-          <button
-            onClick={() => setCurrentSlide(slides.length)}
-            className="mt-4 w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Skip to terms
-          </button>
+              <span style={{ fontSize: "0.875rem", lineHeight: 1.55, color: "hsl(var(--muted-foreground))", cursor: "pointer" }}>
+                I accept the{" "}
+                <strong style={{ color: "hsl(var(--primary))", fontWeight: 600 }}>Terms of Use</strong> and{" "}
+                <strong style={{ color: "hsl(var(--primary))", fontWeight: 600 }}>Privacy Policy</strong>
+              </span>
+            </div>
+          </div>
         )}
+
+        {/* Actions */}
+        <div style={{ marginTop: 40, display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ display: "flex", gap: 10 }}>
+            {current > 0 && (
+              <button
+                onClick={goBack}
+                style={{
+                  background: "none",
+                  border: "1px solid hsl(var(--border))",
+                  color: "hsl(var(--muted-foreground))",
+                  padding: "13px 18px",
+                  fontFamily: "var(--font-display, 'Montserrat', sans-serif)",
+                  fontSize: "0.75rem",
+                  fontWeight: 600,
+                  letterSpacing: "0.06em",
+                  textTransform: "uppercase",
+                  cursor: "pointer",
+                  borderRadius: 0,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                ← Back
+              </button>
+            )}
+            <button
+              onClick={goNext}
+              disabled={isTerms && !accepted}
+              style={{
+                flex: 1,
+                background: "hsl(var(--primary))",
+                color: "hsl(var(--primary-foreground))",
+                border: "none",
+                padding: "13px 28px",
+                fontFamily: "var(--font-display, 'Montserrat', sans-serif)",
+                fontSize: "0.75rem",
+                fontWeight: 700,
+                letterSpacing: "0.09em",
+                textTransform: "uppercase",
+                cursor: isTerms && !accepted ? "not-allowed" : "pointer",
+                opacity: isTerms && !accepted ? 0.35 : 1,
+                borderRadius: 0,
+              }}
+            >
+              {isTerms ? "Get Started" : "Continue"}
+            </button>
+          </div>
+
+          {!isTerms && (
+            <button
+              onClick={skipToTerms}
+              style={{
+                textAlign: "center",
+                fontSize: "0.75rem",
+                fontWeight: 500,
+                letterSpacing: "0.04em",
+                color: "hsl(var(--muted-foreground))",
+                cursor: "pointer",
+                border: "none",
+                background: "none",
+                fontFamily: "var(--font-display, 'Montserrat', sans-serif)",
+              }}
+            >
+              Skip to terms
+            </button>
+          )}
+        </div>
+
+        <style>{`
+          @keyframes obIn {
+            from { opacity: 0; transform: translateX(18px); }
+            to   { opacity: 1; transform: translateX(0); }
+          }
+        `}</style>
       </div>
     </div>
   );
