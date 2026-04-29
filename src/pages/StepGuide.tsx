@@ -564,7 +564,7 @@ const StageGuide = () => {
         </main>
 
         {/* Footer nav */}
-        <div className="sg-footer">
+        <div className="sg-footer max-w-screen-sm mx-auto">
           <button
             className="sg-foot-btn"
             disabled={activeSection === 0}

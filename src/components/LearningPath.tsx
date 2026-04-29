@@ -57,8 +57,20 @@ const StarIcon = ({ size = 14 }: { size?: number }) => (
   </svg>
 );
 
-const BookIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+const BookIcon = ({
+  size = 14,
+  color = "currentColor",
+}: {
+  size?: number;
+  color?: string;
+}) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 16 16"
+    fill="none"
+    style={{ color }}
+  >
     <path
       d="M3 2h8a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z"
       stroke="currentColor"
@@ -618,7 +630,7 @@ const LearningPath = () => {
 
       {/* ── Stage detail sheet ──────────────────────────────── */}
       <div
-        className={`lp-overlay relative max-w-screen-sm rounded-md px-24 flex mx-auto${selectedStage ? " lp-open" : ""}`}
+        className={`lp-overlay relative max-w-screen-sm rounded-md flex mx-auto${selectedStage ? " lp-open" : ""}`}
         onClick={(e) => e.target === e.currentTarget && setSelectedStage(null)}
       >
         <div className="lp-sheet">
@@ -692,13 +704,13 @@ const LearningPath = () => {
               </div>
 
           <button
-            className="lp-sh-guide-btn"
+            className="lp-sh-guide-btn flex items-center justify-center gap-2"
             onClick={() => {
               setSelectedStage(null);
               navigate(`/guide/${selectedStage.id}`);
             }}
           >
-            📖 View Stage Guide
+            <BookIcon />  View Stage Guide
           </button>
           <button
             className="lp-sh-close"
