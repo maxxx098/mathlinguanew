@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Users, Copy, Heart, MessageCircle, ClipboardList, Plus, LogIn, Loader2, Trash2, Calendar, Check, X, Send, ChevronDown, ChevronUp, Trophy, LogOut, Pencil } from "lucide-react";
+import { Users, Copy, Heart, MessageCircle, ClipboardList, Plus, LogIn, Loader2, Trash2, Calendar, Check, Send, ChevronDown, ChevronUp, Trophy, LogOut } from "lucide-react";
 import ProgressBoard from "@/components/ProgressBoard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,15 +53,6 @@ interface FeedComment {
   user_id: string;
   content: string;
   created_at: string;
-  display_name: string;
-}
-
-// LeaderboardEntry moved to ProgressBoard component
-
-interface Submission {
-  user_id: string;
-  score: number | null;
-  submitted_at: string;
   display_name: string;
 }
 
@@ -174,309 +165,6 @@ const AssignmentAnswerModal = ({
   );
 };
 
-// ─── Create Assignment with Questions (Teacher) ───
-const CreateAssignmentDialog = ({
-  open,
-  onOpenChange,
-  classId,
-  teacherId,
-  onCreated,
-}: {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
-  classId: string;
-  teacherId: string;
-  onCreated: () => void;
-}) => {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [dueDate, setDueDate] = useState("");
-  const [questions, setQuestions] = useState<AssignmentQuestion[]>([
-    { question: "", options: ["", "", "", ""], correct: "" },
-  ]);
-  const [submitting, setSubmitting] = useState(false);
-
-  const updateQuestion = (idx: number, field: keyof AssignmentQuestion, value: any) => {
-    setQuestions(prev => prev.map((q, i) => (i === idx ? { ...q, [field]: value } : q)));
-  };
-
-  const updateOption = (qIdx: number, oIdx: number, value: string) => {
-    setQuestions(prev =>
-      prev.map((q, i) =>
-        i === qIdx
-          ? { ...q, options: q.options.map((o, j) => (j === oIdx ? value : o)) }
-          : q
-      )
-    );
-  };
-
-  const addQuestion = () => {
-    setQuestions(prev => [...prev, { question: "", options: ["", "", "", ""], correct: "" }]);
-  };
-
-  const removeQuestion = (idx: number) => {
-    if (questions.length <= 1) return;
-    setQuestions(prev => prev.filter((_, i) => i !== idx));
-  };
-
-  const handleSubmit = async () => {
-    if (!title.trim()) return;
-    const validQuestions = questions.filter(q => q.question.trim() && q.correct.trim());
-    if (validQuestions.length === 0) {
-      toast.error("Add at least one question with a correct answer.");
-      return;
-    }
-    setSubmitting(true);
-
-    const { error } = await supabase.from("assignments").insert({
-      class_id: classId,
-      teacher_id: teacherId,
-      title: title.trim(),
-      description: description.trim() || null,
-      due_date: dueDate || null,
-      questions: validQuestions as any,
-    });
-
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success("Assignment created!");
-      setTitle("");
-      setDescription("");
-      setDueDate("");
-      setQuestions([{ question: "", options: ["", "", "", ""], correct: "" }]);
-      onOpenChange(false);
-      onCreated();
-    }
-    setSubmitting(false);
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>Create Assignment</DialogTitle></DialogHeader>
-        <div className="space-y-4 pt-2">
-          <div className="space-y-2">
-            <Label>Title</Label>
-            <Input placeholder="e.g. Practice: Single Operations" value={title} onChange={e => setTitle(e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label>Description (optional)</Label>
-            <Textarea placeholder="Instructions for students..." value={description} onChange={e => setDescription(e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label>Due Date (optional)</Label>
-            <Input type="datetime-local" value={dueDate} onChange={e => setDueDate(e.target.value)} />
-          </div>
-
-          <div className="border-t pt-4">
-            <Label className="text-base font-bold">Questions</Label>
-            <div className="space-y-4 mt-3">
-              {questions.map((q, qIdx) => (
-                <div key={qIdx} className="space-y-2 rounded-xl border p-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-muted-foreground">Q{qIdx + 1}</span>
-                    {questions.length > 1 && (
-                      <button onClick={() => removeQuestion(qIdx)} className="text-muted-foreground hover:text-destructive">
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    )}
-                  </div>
-                  <Input
-                    placeholder="Enter question..."
-                    value={q.question}
-                    onChange={e => updateQuestion(qIdx, "question", e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">Options (leave blank for free-text answer):</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {q.options.map((opt, oIdx) => (
-                      <Input
-                        key={oIdx}
-                        placeholder={`Option ${String.fromCharCode(65 + oIdx)}`}
-                        value={opt}
-                        onChange={e => updateOption(qIdx, oIdx, e.target.value)}
-                      />
-                    ))}
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Correct Answer</Label>
-                    <Input
-                      placeholder="Type the correct answer"
-                      value={q.correct}
-                      onChange={e => updateQuestion(qIdx, "correct", e.target.value)}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-            <Button variant="outline" size="sm" className="mt-3 gap-1 w-full" onClick={addQuestion}>
-              <Plus className="h-3 w-3" /> Add Question
-            </Button>
-          </div>
-
-          <Button className="w-full" onClick={handleSubmit} disabled={submitting || !title.trim()}>
-            {submitting ? "Creating..." : "Create Assignment"}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
-// ─── Edit Assignment Dialog (Teacher) ───
-const EditAssignmentDialog = ({
-  open,
-  onOpenChange,
-  assignment,
-  onUpdated,
-}: {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
-  assignment: Assignment;
-  onUpdated: () => void;
-}) => {
-  const [title, setTitle] = useState(assignment.title);
-  const [description, setDescription] = useState(assignment.description || "");
-  const [dueDate, setDueDate] = useState(assignment.due_date ? new Date(assignment.due_date).toISOString().slice(0, 16) : "");
-  const [questions, setQuestions] = useState<AssignmentQuestion[]>(
-    assignment.questions && assignment.questions.length > 0
-      ? assignment.questions
-      : [{ question: "", options: ["", "", "", ""], correct: "" }]
-  );
-  const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    setTitle(assignment.title);
-    setDescription(assignment.description || "");
-    setDueDate(assignment.due_date ? new Date(assignment.due_date).toISOString().slice(0, 16) : "");
-    setQuestions(
-      assignment.questions && assignment.questions.length > 0
-        ? assignment.questions
-        : [{ question: "", options: ["", "", "", ""], correct: "" }]
-    );
-  }, [assignment]);
-
-  const updateQuestion = (idx: number, field: keyof AssignmentQuestion, value: any) => {
-    setQuestions(prev => prev.map((q, i) => (i === idx ? { ...q, [field]: value } : q)));
-  };
-
-  const updateOption = (qIdx: number, oIdx: number, value: string) => {
-    setQuestions(prev =>
-      prev.map((q, i) =>
-        i === qIdx
-          ? { ...q, options: q.options.map((o, j) => (j === oIdx ? value : o)) }
-          : q
-      )
-    );
-  };
-
-  const addQuestion = () => {
-    setQuestions(prev => [...prev, { question: "", options: ["", "", "", ""], correct: "" }]);
-  };
-
-  const removeQuestion = (idx: number) => {
-    if (questions.length <= 1) return;
-    setQuestions(prev => prev.filter((_, i) => i !== idx));
-  };
-
-  const handleSubmit = async () => {
-    if (!title.trim()) return;
-    const validQuestions = questions.filter(q => q.question.trim() && q.correct.trim());
-    if (validQuestions.length === 0) {
-      toast.error("Add at least one question with a correct answer.");
-      return;
-    }
-    setSubmitting(true);
-
-    const { error } = await supabase.from("assignments").update({
-      title: title.trim(),
-      description: description.trim() || null,
-      due_date: dueDate || null,
-      questions: validQuestions as any,
-    }).eq("id", assignment.id);
-
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success("Assignment updated!");
-      onOpenChange(false);
-      onUpdated();
-    }
-    setSubmitting(false);
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>Edit Assignment</DialogTitle></DialogHeader>
-        <div className="space-y-4 pt-2">
-          <div className="space-y-2">
-            <Label>Title</Label>
-            <Input placeholder="e.g. Practice: Single Operations" value={title} onChange={e => setTitle(e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label>Description (optional)</Label>
-            <Textarea placeholder="Instructions for students..." value={description} onChange={e => setDescription(e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label>Due Date (optional)</Label>
-            <Input type="datetime-local" value={dueDate} onChange={e => setDueDate(e.target.value)} />
-          </div>
-
-          <div className="border-t pt-4">
-            <Label className="text-base font-bold">Questions</Label>
-            <div className="space-y-4 mt-3">
-              {questions.map((q, qIdx) => (
-                <div key={qIdx} className="space-y-2 rounded-xl border p-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-muted-foreground">Q{qIdx + 1}</span>
-                    {questions.length > 1 && (
-                      <button onClick={() => removeQuestion(qIdx)} className="text-muted-foreground hover:text-destructive">
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    )}
-                  </div>
-                  <Input
-                    placeholder="Enter question..."
-                    value={q.question}
-                    onChange={e => updateQuestion(qIdx, "question", e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">Options (leave blank for free-text answer):</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {q.options.map((opt, oIdx) => (
-                      <Input
-                        key={oIdx}
-                        placeholder={`Option ${String.fromCharCode(65 + oIdx)}`}
-                        value={opt}
-                        onChange={e => updateOption(qIdx, oIdx, e.target.value)}
-                      />
-                    ))}
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Correct Answer</Label>
-                    <Input
-                      placeholder="Type the correct answer"
-                      value={q.correct}
-                      onChange={e => updateQuestion(qIdx, "correct", e.target.value)}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-            <Button variant="outline" size="sm" className="mt-3 gap-1 w-full" onClick={addQuestion}>
-              <Plus className="h-3 w-3" /> Add Question
-            </Button>
-          </div>
-
-          <Button className="w-full" onClick={handleSubmit} disabled={submitting || !title.trim()}>
-            {submitting ? "Saving..." : "Save Changes"}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
 // ─── Main Class Component ───
 const Class = () => {
   const { user, userRole, isGuest } = useAuth();
@@ -488,15 +176,12 @@ const Class = () => {
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [mySubmissions, setMySubmissions] = useState<Record<string, { score: number | null }>>({});
-  const [teacherSubmissions, setTeacherSubmissions] = useState<Record<string, Submission[]>>({});
 
   // Dialogs
   const [showCreateClass, setShowCreateClass] = useState(false);
   const [showJoinClass, setShowJoinClass] = useState(false);
-  const [showCreateAssignment, setShowCreateAssignment] = useState(false);
   const [activeAssignment, setActiveAssignment] = useState<Assignment | null>(null);
   const [expandedAssignment, setExpandedAssignment] = useState<string | null>(null);
-  const [editingAssignment, setEditingAssignment] = useState<Assignment | null>(null);
   const [joinCode, setJoinCode] = useState("");
   const [newClassName, setNewClassName] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -541,61 +226,32 @@ const Class = () => {
     setMyClass(classData);
 
     if (classData) {
-      // Fetch assignments
-      const { data: assignData } = await supabase
-        .from("assignments")
-        .select("*")
-        .eq("class_id", classData.id)
-        .order("created_at", { ascending: false });
+      // Fetch assignments (learner only)
+      if (!isTeacher) {
+        const { data: assignData } = await supabase
+          .from("assignments")
+          .select("*")
+          .eq("class_id", classData.id)
+          .order("created_at", { ascending: false });
 
-      const parsedAssignments: Assignment[] = (assignData || []).map(a => ({
-        ...a,
-        questions: a.questions as unknown as AssignmentQuestion[] | null,
-      }));
-      setAssignments(parsedAssignments);
+        const parsedAssignments: Assignment[] = (assignData || []).map(a => ({
+          ...a,
+          questions: a.questions as unknown as AssignmentQuestion[] | null,
+        }));
+        setAssignments(parsedAssignments);
 
-      // Fetch my submissions (learner) or all submissions (teacher)
-      if (!isTeacher && parsedAssignments.length > 0) {
-        const { data: subs } = await supabase
-          .from("assignment_submissions")
-          .select("assignment_id, score")
-          .eq("user_id", user.id)
-          .in("assignment_id", parsedAssignments.map(a => a.id));
+        if (parsedAssignments.length > 0) {
+          const { data: subs } = await supabase
+            .from("assignment_submissions")
+            .select("assignment_id, score")
+            .eq("user_id", user.id)
+            .in("assignment_id", parsedAssignments.map(a => a.id));
 
-        const subMap: Record<string, { score: number | null }> = {};
-        (subs || []).forEach(s => {
-          subMap[s.assignment_id] = { score: s.score };
-        });
-        setMySubmissions(subMap);
-      }
-
-      if (isTeacher && parsedAssignments.length > 0) {
-        const { data: allSubs } = await supabase
-          .from("assignment_submissions")
-          .select("assignment_id, user_id, score, submitted_at")
-          .in("assignment_id", parsedAssignments.map(a => a.id));
-
-        if (allSubs && allSubs.length > 0) {
-          const subUserIds = [...new Set(allSubs.map(s => s.user_id))];
-          const { data: profiles } = await supabase
-            .from("profiles")
-            .select("user_id, display_name")
-            .in("user_id", subUserIds);
-          const profileMap = Object.fromEntries(
-            (profiles || []).map(p => [p.user_id, p.display_name || "Unknown"])
-          );
-
-          const grouped: Record<string, Submission[]> = {};
-          allSubs.forEach(s => {
-            if (!grouped[s.assignment_id]) grouped[s.assignment_id] = [];
-            grouped[s.assignment_id].push({
-              user_id: s.user_id,
-              score: s.score,
-              submitted_at: s.submitted_at,
-              display_name: profileMap[s.user_id] || "Unknown",
-            });
+          const subMap: Record<string, { score: number | null }> = {};
+          (subs || []).forEach(s => {
+            subMap[s.assignment_id] = { score: s.score };
           });
-          setTeacherSubmissions(grouped);
+          setMySubmissions(subMap);
         }
       }
 
@@ -622,7 +278,6 @@ const Class = () => {
           (profilesRes.data || []).map(p => [p.user_id, p.display_name])
         );
 
-        // Get comment user profiles
         const commentUserIds = [...new Set((commentsRes.data || []).map(c => c.user_id))];
         let commentProfileMap: Record<string, string> = { ...profileMap };
         const missingIds = commentUserIds.filter(id => !commentProfileMap[id]);
@@ -778,15 +433,6 @@ const Class = () => {
     setSubmitting(false);
   };
 
-  const handleDeleteAssignment = async (id: string) => {
-    const { error } = await supabase.from("assignments").delete().eq("id", id);
-    if (error) toast.error(error.message);
-    else {
-      toast.success("Assignment deleted");
-      setAssignments(prev => prev.filter(a => a.id !== id));
-    }
-  };
-
   const handleCopyCode = () => {
     if (myClass) {
       navigator.clipboard.writeText(myClass.class_code);
@@ -897,7 +543,7 @@ const Class = () => {
     return `${Math.floor(hrs / 24)}d ago`;
   };
 
-  // Guest gate — show login prompt for guests
+  // Guest gate
   if (isGuest && !user) {
     return (
       <div className="pb-24 pt-4 px-4">
@@ -926,7 +572,7 @@ const Class = () => {
     );
   }
 
-  // No class yet — show create/join
+  // No class yet
   if (!myClass) {
     return (
       <div className="pb-24 pt-4 px-4">
@@ -984,7 +630,7 @@ const Class = () => {
     );
   }
 
-  // Has class — show full view
+  // Has class — full view
   return (
     <div className="pb-24 pt-4 px-4">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
@@ -1010,157 +656,73 @@ const Class = () => {
       {/* Progress Board */}
       <ProgressBoard classId={myClass.id} teacherId={myClass.teacher_id} />
 
-      {/* Assignments */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-display text-base font-bold flex items-center gap-2">
-            <ClipboardList className="h-4 w-4 text-primary" /> Assignments
-          </h2>
-          {isTeacher && (
-            <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => setShowCreateAssignment(true)}>
-              <Plus className="h-3 w-3" /> New
-            </Button>
-          )}
-        </div>
-
-        {isTeacher && (
-          <CreateAssignmentDialog
-            open={showCreateAssignment}
-            onOpenChange={setShowCreateAssignment}
-            classId={myClass.id}
-            teacherId={user!.id}
-            onCreated={fetchClassData}
-          />
-        )}
-
-        {isTeacher && editingAssignment && (
-          <EditAssignmentDialog
-            open={!!editingAssignment}
-            onOpenChange={(v) => { if (!v) setEditingAssignment(null); }}
-            assignment={editingAssignment}
-            onUpdated={() => { setEditingAssignment(null); fetchClassData(); }}
-          />
-        )}
-
-        {assignments.length === 0 ? (
-          <div className="rounded-xl border bg-card p-6 text-center">
-            <p className="text-sm text-muted-foreground">No assignments yet</p>
+      {/* Assignments — Learner only */}
+      {!isTeacher && (
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-display text-base font-bold flex items-center gap-2">
+              <ClipboardList className="h-4 w-4 text-primary" /> Assignments
+            </h2>
           </div>
-        ) : (
-          <div className="space-y-2">
-            {assignments.map(a => {
-              const mySubmission = mySubmissions[a.id];
-              const subs = teacherSubmissions[a.id] || [];
-              const isExpanded = expandedAssignment === a.id;
-              const qCount = a.questions?.length || 0;
 
-              return (
-                <motion.div
-                  key={a.id}
-                  initial={{ opacity: 0, y: 5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="rounded-xl border bg-card p-4 space-y-3"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold">{a.title}</p>
-                      {a.description && <p className="text-xs text-muted-foreground mt-1">{a.description}</p>}
-                      <div className="flex items-center gap-3 mt-1.5">
-                        {a.due_date && (
-                          <p className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Calendar className="h-3 w-3" />
-                            Due: {new Date(a.due_date).toLocaleDateString()}
-                          </p>
-                        )}
-                        <p className="text-xs text-muted-foreground">{qCount} question{qCount !== 1 ? "s" : ""}</p>
+          {assignments.length === 0 ? (
+            <div className="rounded-xl border bg-card p-6 text-center">
+              <p className="text-sm text-muted-foreground">No assignments yet</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {assignments.map(a => {
+                const mySubmission = mySubmissions[a.id];
+                const qCount = a.questions?.length || 0;
+
+                return (
+                  <motion.div
+                    key={a.id}
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="rounded-xl border bg-card p-4 space-y-3"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold">{a.title}</p>
+                        {a.description && <p className="text-xs text-muted-foreground mt-1">{a.description}</p>}
+                        <div className="flex items-center gap-3 mt-1.5">
+                          {a.due_date && (
+                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                              <Calendar className="h-3 w-3" />
+                              Due: {new Date(a.due_date).toLocaleDateString()}
+                            </p>
+                          )}
+                          <p className="text-xs text-muted-foreground">{qCount} question{qCount !== 1 ? "s" : ""}</p>
+                        </div>
                       </div>
                     </div>
-                    {isTeacher && (
-                      <div className="flex items-center gap-1 ml-2 shrink-0">
-                        <button
-                          onClick={() => setEditingAssignment(a)}
-                          className="text-muted-foreground hover:text-primary"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteAssignment(a.id)}
-                          className="text-muted-foreground hover:text-destructive"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+
+                    {mySubmission ? (
+                      <div className="flex items-center gap-2 rounded-lg bg-success/10 px-3 py-2">
+                        <Check className="h-4 w-4 text-success" />
+                        <span className="text-sm font-medium text-success">
+                          Submitted — {mySubmission.score}/{qCount} correct
+                        </span>
                       </div>
-                    )}
-                  </div>
-
-                  {/* Learner: answer or see score */}
-                  {!isTeacher && (
-                    <>
-                      {mySubmission ? (
-                        <div className="flex items-center gap-2 rounded-lg bg-success/10 px-3 py-2">
-                          <Check className="h-4 w-4 text-success" />
-                          <span className="text-sm font-medium text-success">
-                            Submitted — {mySubmission.score}/{qCount} correct
-                          </span>
-                        </div>
-                      ) : qCount > 0 ? (
-                        <Button
-                          size="sm"
-                          className="w-full gap-2"
-                          onClick={() => setActiveAssignment(a)}
-                        >
-                          <ClipboardList className="h-4 w-4" /> Answer Assignment
-                        </Button>
-                      ) : (
-                        <p className="text-xs text-muted-foreground italic">No questions added yet</p>
-                      )}
-                    </>
-                  )}
-
-                  {/* Teacher: view submissions */}
-                  {isTeacher && (
-                    <>
-                      <button
-                        onClick={() => setExpandedAssignment(isExpanded ? null : a.id)}
-                        className="flex items-center gap-1 text-xs text-primary font-medium"
+                    ) : qCount > 0 ? (
+                      <Button
+                        size="sm"
+                        className="w-full gap-2"
+                        onClick={() => setActiveAssignment(a)}
                       >
-                        {subs.length} submission{subs.length !== 1 ? "s" : ""}
-                        {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                      </button>
-                      <AnimatePresence>
-                        {isExpanded && (
-                          <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: "auto", opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            className="overflow-hidden"
-                          >
-                            {subs.length === 0 ? (
-                              <p className="text-xs text-muted-foreground py-2">No submissions yet</p>
-                            ) : (
-                              <div className="space-y-1.5 pt-1">
-                                {subs.map(s => (
-                                  <div key={s.user_id} className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2">
-                                    <span className="text-sm font-medium">{s.display_name}</span>
-                                    <div className="text-right">
-                                      <span className="text-sm font-bold">{s.score}/{qCount}</span>
-                                      <p className="text-[10px] text-muted-foreground">{timeAgo(s.submitted_at)}</p>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </>
-                  )}
-                </motion.div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+                        <ClipboardList className="h-4 w-4" /> Answer Assignment
+                      </Button>
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic">No questions added yet</p>
+                    )}
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Assignment Answer Dialog */}
       <Dialog open={!!activeAssignment} onOpenChange={() => setActiveAssignment(null)}>

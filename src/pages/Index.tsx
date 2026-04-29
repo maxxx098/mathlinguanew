@@ -267,9 +267,9 @@ const TeacherDashboard = () => {
       if (classIds.length > 0) {
         const { data: members } = await supabase.from("class_members").select("user_id, class_id").in("class_id", classIds);
         const totalStudents = members?.length || 0;
-
         const memberIds = [...new Set((members || []).map((m: any) => m.user_id))];
         let progressByUser: Record<string, { score: number; total: number }> = {};
+
         if (memberIds.length > 0) {
           const { data: progress } = await supabase
             .from("user_progress").select("user_id, score, total_questions, completed")
@@ -289,25 +289,6 @@ const TeacherDashboard = () => {
             if (avg < 50) struggling.push({ name: profMap[uid] || "Unknown", avgScore: avg, userId: uid });
           });
           setNeedsAttention(struggling.slice(0, 5));
-
-          classDetails = allClasses.map((c: any) => {
-            const classMembers = (members || []).filter((m: any) => m.class_id === c.id);
-            const classAssigns = allAssignments.filter((a: any) => a.class_id === c.id);
-            let totalPct = 0;
-            let countWithProgress = 0;
-            classMembers.forEach((m: any) => {
-              const prog = progressByUser[m.user_id];
-              if (prog && prog.total > 0) {
-                totalPct += Math.round((prog.score / prog.total) * 100);
-                countWithProgress++;
-              }
-            });
-            const avgScore = countWithProgress > 0 ? Math.round(totalPct / countWithProgress) : 0;
-            return {
-              id: c.id, name: c.name, class_code: c.class_code,
-              studentCount: classMembers.length, assignmentCount: classAssigns.length, avgScore,
-            };
-          });
 
           const assignmentDetails = await Promise.all(
             allAssignments.map(async (a: any) => {
@@ -333,14 +314,34 @@ const TeacherDashboard = () => {
             const map = Object.fromEntries((feedProfs || []).map((p: any) => [p.user_id, p.display_name]));
             setRecentActivity(feed.map((f: any) => ({ ...f, display_name: map[f.user_id] || "Unknown" })));
           }
-
-          setStats({ classCount: allClasses.length, studentCount: totalStudents, assignmentCount: allAssignments.length });
-        } else {
-          setStats({ classCount: allClasses.length, studentCount: 0, assignmentCount: allAssignments.length });
         }
+
+        // ✅ MOVED HERE — always runs when classIds exist, even with 0 students
+        classDetails = allClasses.map((c: any) => {
+          const classMembers = (members || []).filter((m: any) => m.class_id === c.id);
+          const classAssigns = allAssignments.filter((a: any) => a.class_id === c.id);
+          let totalPct = 0;
+          let countWithProgress = 0;
+          classMembers.forEach((m: any) => {
+            const prog = progressByUser[m.user_id];
+            if (prog && prog.total > 0) {
+              totalPct += Math.round((prog.score / prog.total) * 100);
+              countWithProgress++;
+            }
+          });
+          const avgScore = countWithProgress > 0 ? Math.round(totalPct / countWithProgress) : 0;
+          return {
+            id: c.id, name: c.name, class_code: c.class_code,
+            studentCount: classMembers.length, assignmentCount: classAssigns.length, avgScore,
+          };
+        });
+
+        //  MOVED HERE — always runs when classIds exist
+        setStats({ classCount: allClasses.length, studentCount: totalStudents, assignmentCount: allAssignments.length });
       } else {
         setStats({ classCount: 0, studentCount: 0, assignmentCount: allAssignments.length });
       }
+
       setClasses(classDetails);
     };
     fetchTeacherStats();
@@ -446,60 +447,6 @@ const TeacherDashboard = () => {
                 </button>
               </div>
             )}
-          </div>
-        )}
-      </div>
-
-      <div>
-        <div className="flex justify-between items-center mb-3">
-          <p className="font-black text-foreground text-sm">Assignments</p>
-          <span className="text-xs font-bold text-muted-foreground">{assignments.length} total</span>
-        </div>
-        {assignments.length === 0 ? (
-          <div className="rounded-2xl border border-border bg-card p-6 text-center">
-            <ClipboardList className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-            <p className="text-sm text-muted-foreground">No assignments yet</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-3">
-            {assignments.slice(0, 4).map((a, i) => {
-              const dueLabel = getAssignmentDueLabel(a.due_date);
-              const pct = a.total_students > 0 ? Math.round((a.submissions / a.total_students) * 100) : 0;
-              return (
-                <div
-                  key={a.id}
-                  onClick={() => setActiveTab("Assignments")}
-                  className="cursor-pointer rounded-2xl p-4 flex flex-col gap-2"
-                  style={{ background: ["#0d9488", "#7c3aed", "#d97706", "#1565c0"][i % 4] }}
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(0,0,0,0.2)" }}>
-                      <ClipboardList className="h-4 w-4 text-white" />
-                    </div>
-                    <MoreHorizontal className="h-4 w-4" style={{ color: "rgba(255,255,255,0.4)" }} />
-                  </div>
-                  <div>
-                    <p className="font-extrabold text-sm leading-tight text-white truncate">{a.title}</p>
-                    <p className="text-[10px] font-bold mt-0.5" style={{ color: "rgba(255,255,255,0.6)" }}>{a.class_name}</p>
-                  </div>
-                  {dueLabel && (
-                    <div>
-                      <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.5)" }}>DUE</p>
-                      <p className="text-sm font-black text-white">{dueLabel}</p>
-                    </div>
-                  )}
-                  <div>
-                    <div className="w-full rounded-full h-1.5 mb-1" style={{ background: "rgba(255,255,255,0.15)" }}>
-                      <div className="h-1.5 rounded-full" style={{ width: `${pct}%`, background: pct >= 80 ? "#4ade80" : "#f87171" }} />
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-[9px] font-black" style={{ color: pct >= 80 ? "#4ade80" : "#f87171" }}>{a.submissions}/{a.total_students} submitted</span>
-                      <span className="text-[9px] font-bold" style={{ color: "rgba(255,255,255,0.5)" }}>{pct}%</span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
           </div>
         )}
       </div>
@@ -727,7 +674,7 @@ const TeacherDashboard = () => {
           </div>
 
           <div className="px-5 pt-5 relative">
-            <PillTabs tabs={["Overview", "Classes", "Assignments"]} active={activeTab} onChange={setActiveTab} />
+            <PillTabs tabs={["Overview", "Classes"]} active={activeTab} onChange={setActiveTab} />
           </div>
         </div>
       </div>
@@ -735,7 +682,6 @@ const TeacherDashboard = () => {
       <div className="max-w-screen-md mx-auto px-5 py-5">
         {activeTab === "Overview" && renderOverview()}
         {activeTab === "Classes" && renderClasses()}
-        {activeTab === "Assignments" && renderAssignments()}
       </div>
     </div>
   );
