@@ -533,6 +533,22 @@ const LearningPath = () => {
           background: hsl(var(--primary));
           color: hsl(var(--primary-foreground));
         }
+      .lp-sh-guide-btn {
+        margin-top: .75rem;
+        width: 100%;
+        padding: 13px;
+        border: none;
+        border-radius: var(--radius, 0.75rem);
+        background: hsl(var(--primary));
+        font-family: var(--font-display, 'Montserrat', sans-serif);
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: .02em;
+        color: hsl(var(--primary-foreground));
+        cursor: pointer;
+        transition: opacity .15s;
+      }
+      .lp-sh-guide-btn:hover { opacity: .85; }
       `}</style>
 
       {/* ── Learning path ───────────────────────────────────── */}
@@ -675,12 +691,21 @@ const LearningPath = () => {
                 })}
               </div>
 
-              <button
-                className="lp-sh-close"
-                onClick={() => setSelectedStage(null)}
-              >
-                Close
-              </button>
+          <button
+            className="lp-sh-guide-btn"
+            onClick={() => {
+              setSelectedStage(null);
+              navigate(`/guide/${selectedStage.id}`);
+            }}
+          >
+            📖 View Stage Guide
+          </button>
+          <button
+            className="lp-sh-close"
+            onClick={() => setSelectedStage(null)}
+          >
+            Close
+          </button>
             </>
           )}
         </div>

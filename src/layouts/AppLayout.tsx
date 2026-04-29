@@ -1,9 +1,10 @@
-import { Outlet, Navigate } from "react-router-dom";
+import { Outlet, Navigate, useLocation } from "react-router-dom";
 import BottomNav from "@/components/BottomNav";
 import { useAuth } from "@/contexts/AuthContext";
 
 const AppLayout = () => {
   const { user, profile, isGuest, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -18,11 +19,13 @@ const AppLayout = () => {
   }
 
   const showingOnboarding = user && profile && !profile.onboarding_completed;
+  const isGuideRoute = location.pathname.startsWith("/guide/");
+  const hideNav = showingOnboarding || isGuideRoute;
 
   return (
-    <div className={`mx-auto min-h-screen max-w-lg bg-background ${showingOnboarding ? "" : "pb-24"}`}>
+    <div className={`mx-auto min-h-screen max-w-lg bg-background ${hideNav ? "" : "pb-24"}`}>
       <Outlet />
-      {!showingOnboarding && <BottomNav />}
+      {!hideNav && <BottomNav />}
     </div>
   );
 };

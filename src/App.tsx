@@ -20,6 +20,7 @@ import StudentProfile from "./pages/StudentProfile";
 import Guide from "./pages/Guide";
 import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
+import StageGuide from "./pages/StepGuide";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +39,7 @@ const App = () => (
               <Route path="/activity/:levelId" element={<Activity />} />
               <Route element={<AppLayout />}>
                 <Route path="/" element={<Index />} />
+                <Route path="/guide/:stageId" element={<StageGuide />} />
                 <Route path="/class" element={<Class />} />
                 <Route path="/community" element={<Community />} />
                 <Route path="/notifications" element={<Notifications />} />
